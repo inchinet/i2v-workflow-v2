@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>I2V 工作流程 - 分場影片生成器</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <!-- FontAwesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+
+<body>
+    <div class="background-blobs">
+        <div class="blob blob-1"></div>
+        <div class="blob blob-2"></div>
+        <div class="blob blob-3"></div>
+    </div>
+
+    <main class="glass-container">
+        <header>
+            <h1><i class="fa-solid fa-film"></i> I2V 工作流程</h1>
+        </header>
+
+        <section class="input-section">
+            <div class="upload-group">
+                <div class="glass-card upload-card">
+                    <h3><i class="fa-solid fa-venus"></i> 女主角 (必填)</h3>
+                    <div class="file-drop-area" id="drop-female">
+                        <i class="fa-solid fa-cloud-arrow-up"></i>
+                        <span class="file-msg">拖放或點擊上傳</span>
+                        <input type="file" id="female-photo" accept="image/*,video/*" required>
+                    </div>
+                    <div id="preview-female" class="image-preview"></div>
+                </div>
+
+                <div class="glass-card upload-card">
+                    <h3><i class="fa-solid fa-mars"></i> 男主角 (選填)</h3>
+                    <div class="file-drop-area" id="drop-male">
+                        <i class="fa-solid fa-cloud-arrow-up"></i>
+                        <span class="file-msg">拖放或點擊上傳</span>
+                        <input type="file" id="male-photo" accept="image/*,video/*">
+                    </div>
+                    <div id="preview-male" class="image-preview"></div>
+                </div>
+            </div>
+
+            <div class="glass-card full-width">
+                <!-- Aspect Ratio Selector -->
+                <div class="input-group">
+                    <label><i class="fa-solid fa-crop-simple"></i> 影片比例</label>
+                    <select id="aspect-ratio" class="glass-select">
+                        <option value="4:3" selected>橫向 (4:3) - 電影感</option>
+                        <option value="3:4">直向 (3:4) - 社交媒體</option>
+                    </select>
+                </div>
+                <!-- Veo Video Generation Toggle -->
+                <div class="input-group">
+                    <label style="display:flex; align-items:center; gap:10px; cursor:pointer;">
+                        <input type="checkbox" id="enable-veo" style="width:auto; height:20px; cursor:pointer;" checked>
+                        <span><i class="fa-solid fa-film"></i> 啟用 Veo 3.1 真實 AI 影片 (建議)</span>
+                    </label>
+                </div>
+            </div>
+
+            <div class="glass-card full-width" style="border: 1px solid rgba(66, 133, 244, 0.3);">
+                <div class="input-header" style="display:flex; justify-content:space-between; align-items:center;">
+                    <h3><i class="fa-brands fa-google"></i> Google Gemini API 金鑰 (選填)</h3>
+                    <div class="input-wrapper" style="width: 60%;">
+                        <input type="password" id="api-key" value=""
+                            placeholder="貼上金鑰以使用真實 AI 模式 (AIza...)" class="glass-input"
+                            style="width:100%; padding:0.5rem; background:rgba(0,0,0,0.3); color:#fff; border:1px solid rgba(255,255,255,0.2); border-radius:4px;">
+                    </div>
+                </div>
+                <div style="font-size:0.8em; color:rgba(255,255,255,0.6); margin-top:5px;">
+                    如提供金鑰，將使用真實 Google AI 生成廣東話故事及鏡頭運動。否則使用模擬邏輯。
+                </div>
+            </div>
+
+            <div class="glass-card full-width" style="border: 1px dashed rgba(255, 166, 0, 0.4);">
+                <div class="input-header" style="display:flex; justify-content:space-between; align-items:center;">
+                    <h3><i class="fa-solid fa-shirt"></i> 鎖定視覺細節 (選填)</h3>
+                </div>
+                <input type="text" id="visual-details" value="保持人物容貌, 衣着, 耳環眼鏡, 化妝, 場景, 日夜, 室外/室內, 除非轉場境"
+                    placeholder="例如：女主角：白色連身裙，紅色眼鏡。男主角：藍色西裝，眼鏡。（覆蓋 AI 預設）" class="glass-input"
+                    style="width:100%; padding:0.8rem; background:rgba(0,0,0,0.3); color:#fff; border:1px solid rgba(255,255,255,0.2); border-radius:8px; margin-top:10px;">
+                <div style="font-size:0.8em; color:rgba(255,255,255,0.6); margin-top:5px;">
+                    在此定義服裝/外觀，以強制所有場景保持嚴格連續性。
+                </div>
+            </div>
+
+            <div class="glass-card full-width">
+                <h3><i class="fa-solid fa-pen-nib"></i> 場景描述 (繁體中文/廣東話對白)</h3>
+                <p style="font-size:0.9em; color:rgba(255,255,255,0.7); margin-bottom:1rem;">
+                    請輸入每個場景的內容。第一個場景為必填，其餘為選填。每個場景將生成約8秒的影片。
+                </p>
+
+                <!-- Scene 1 - Required -->
+                <div class="scene-input-group">
+                    <label><i class="fa-solid fa-1"></i> 場景 1 (必填) *</label>
+                    <textarea id="scene-1" required maxlength="500"
+                        placeholder="例如：兩位情侶在咖啡座，女主角微笑看著男主角，男主角害羞地點頭回應。保持人物容貌, 髮型衣着, 化妝。"></textarea>
+                    <div class="char-count"><span id="char-1">0</span>/500</div>
+                </div>
+
+                <!-- Scene 2 - Optional -->
+                <div class="scene-input-group">
+                    <label><i class="fa-solid fa-2"></i> 場景 2 (選填)</label>
+                    <textarea id="scene-2" maxlength="500"
+                        placeholder="例如：鏡頭轉到海邊，兩人手拖手散步，女主角開心地笑。保持人物容貌, 髮型衣着, 化妝。"></textarea>
+                    <div class="char-count"><span id="char-2">0</span>/500</div>
+                </div>
+
+                <!-- Scene 3 - Optional -->
+                <div class="scene-input-group">
+                    <label><i class="fa-solid fa-3"></i> 場景 3 (選填)</label>
+                    <textarea id="scene-3" maxlength="500"
+                        placeholder="例如：女主角特寫，她望著男主角，眼神充滿愛意。保持人物容貌, 髮型衣着, 化妝。"></textarea>
+                    <div class="char-count"><span id="char-3">0</span>/500</div>
+                </div>
+
+                <!-- Scene 4 - Optional -->
+                <div class="scene-input-group">
+                    <label><i class="fa-solid fa-4"></i> 場景 4 (選填)</label>
+                    <textarea id="scene-4" maxlength="500" placeholder="例如：男主角特寫，他點頭微笑回應。保持人物容貌, 髮型衣着, 化妝。"></textarea>
+                    <div class="char-count"><span id="char-4">0</span>/500</div>
+                </div>
+
+                <!-- Scene 5 - Optional -->
+                <div class="scene-input-group">
+                    <label><i class="fa-solid fa-5"></i> 場景 5 (選填)</label>
+                    <textarea id="scene-5" maxlength="500"
+                        placeholder="例如：兩人一起走出咖啡廳，鏡頭慢慢拉遠。保持人物容貌, 髮型衣着, 化妝。"></textarea>
+                    <div class="char-count"><span id="char-5">0</span>/500</div>
+                </div>
+
+                <!-- Scene 6 - Optional -->
+                <div class="scene-input-group">
+                    <label><i class="fa-solid fa-6"></i> 場景 6 (選填)</label>
+                    <textarea id="scene-6" maxlength="500"
+                        placeholder="例如：轉場到餐廳，兩人坐下，女主角環顧四周欣賞環境。保持人物容貌, 髮型衣着, 化妝。"></textarea>
+                    <div class="char-count"><span id="char-6">0</span>/500</div>
+                </div>
+
+                <!-- Scene 7 - Optional -->
+                <div class="scene-input-group">
+                    <label><i class="fa-solid fa-7"></i> 場景 7 (選填)</label>
+                    <textarea id="scene-7" maxlength="500"
+                        placeholder="例如：男主角舉杯微笑，女主角也舉杯回應。保持人物容貌, 髮型衣着, 化妝。"></textarea>
+                    <div class="char-count"><span id="char-7">0</span>/500</div>
+                </div>
+
+                <!-- Scene 8 - Optional -->
+                <div class="scene-input-group">
+                    <label><i class="fa-solid fa-8"></i> 場景 8 (選填)</label>
+                    <textarea id="scene-8" maxlength="500"
+                        placeholder="例如：兩人碰杯，鏡頭特寫杯子碰撞的瞬間。保持人物容貌, 髮型衣着, 化妝。"></textarea>
+                    <div class="char-count"><span id="char-8">0</span>/500</div>
+                </div>
+
+                <!-- Scene 9 - Optional -->
+                <div class="scene-input-group">
+                    <label><i class="fa-solid fa-9"></i> 場景 9 (選填)</label>
+                    <textarea id="scene-9" maxlength="500"
+                        placeholder="例如：夜晚，兩人在街上散步，女主角開心地笑著。保持人物容貌, 髮型衣着, 化妝。"></textarea>
+                    <div class="char-count"><span id="char-9">0</span>/500</div>
+                </div>
+
+                <!-- Scene 10 - Optional -->
+                <div class="scene-input-group">
+                    <label><i class="fa-solid fa-10"></i> 場景 10 (選填)</label>
+                    <textarea id="scene-10" maxlength="500"
+                        placeholder="例如：最後一幕，兩人溫柔擁抱，鏡頭慢慢淡出。保持人物容貌, 髮型衣着, 化妝。"></textarea>
+                    <div class="char-count"><span id="char-10">0</span>/500</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Production Logs (Debug) -->
+        <div id="production-logs" class="glass-card hidden"
+            style="margin-bottom: 2rem; border: 1px solid rgba(0, 255, 255, 0.2); background: rgba(0, 5, 10, 0.4); width: 100%;">
+            <div class="input-header" style="display:flex; justify-content:space-between; align-items:center;">
+                <h3><i class="fa-solid fa-terminal"></i> 製作日誌</h3>
+                <button class="glass-btn" style="padding: 2px 10px; font-size: 0.7em;"
+                    onclick="document.getElementById('production-logs').classList.add('hidden')">隱藏</button>
+            </div>
+            <div id="log-content"
+                style="max-height: 200px; overflow-y: auto; font-family: 'Courier New', monospace; font-size: 0.85em; padding: 10px; color: #00ffcc;">
+                <div style="color: rgba(255,255,255,0.4);">[系統] 製作日誌將在生成過程中顯示於此...
+                </div>
+            </div>
+        </div>
+
+        <!-- Step 2: Generated Images Display -->
+        <section id="gallery-section">
+            <div class="section-divider"></div>
+            <h2><i class="fa-solid fa-layer-group"></i> 已生成場景</h2>
+            <div id="image-gallery" class="gallery-grid">
+                <!-- Javascript will populate this -->
+                <div class="placeholder-text">
+                    <p>當您生成最終影片時，生成的圖像將自動顯示於此。</p>
+                </div>
+            </div>
+
+            <div class="action-buttons">
+                <button id="btn-gen-video" class="glass-btn primary-btn">
+                    <i class="fa-solid fa-video"></i> 生成最終影片
+                </button>
+            </div>
+        </section>
+
+        <!-- Step 3: Final Video -->
+        <section id="video-section" class="hidden">
+            <div class="section-divider"></div>
+            <h2><i class="fa-solid fa-clapperboard"></i> 最終影片輸出 (Veo3)</h2>
+
+            <div class="video-wrapper glass-card">
+                <video id="final-video" controls class="styled-video">
+                    您的瀏覽器不支援影片標籤。
+                </video>
+                <div id="video-caption" class="scene-caption"
+                    style="text-align:center; padding: 10px; font-weight: 600;"></div>
+            </div>
+
+            <div class="action-buttons">
+                <a id="download-link" href="#" class="glass-btn success-btn" download="final_scene.mp4">
+                    <i class="fa-solid fa-download"></i> 下載影片
+                </a>
+            </div>
+        </section>
+
+    </main>
+
+    <script src="app.js?v=3.0"></script>
+</body>
+
+</html>
