@@ -686,7 +686,7 @@ ${textToConvert}
     };
 
     // Helper: Generate Video with Veo 3.1 API
-    const generateVeoVideo = async (apiKey, imageBase64, prompt, duration = 5, onStatusUpdate = null) => {
+    const generateVeoVideo = async (apiKey, imageBase64, prompt, duration = 5, onStatusUpdate = null, visualDetails = '') => {
         const sleep = (ms) => new Promise(r => setTimeout(r, ms));
         const errors = [];
 
@@ -731,15 +731,27 @@ ${textToConvert}
                 }
 
                 // Enhanced prompt for Cantonese audio and clothing consistency
+                // Append user's locked visual details if provided
+                const visualDetailsText = visualDetails && visualDetails.trim()
+                    ? `\n\n視覺一致性要求：${visualDetails.trim()}`
+                    : '';
+
                 const enhancedPrompt = `生成一段 ${duration} 秒的電影級影片，基於以下分鏡：${prompt}。
                 
                 重要要求：
                 1. 音頻：所有角色對白和旁白必須100%使用廣東話（粵語/Cantonese）。
                 2. 服裝：角色必須保持與參考圖像完全相同的服裝、髮型和配飾。
                 3. 音效：包含自然環境音效和電影背景音樂。
-                4. 動作：確保動作逼真且高保真度。
+                4. 動作：確保動作逼真且高保真度。${visualDetailsText}
                 
                 CRITICAL: All dialogue and narration must be in Cantonese (廣東話). Character clothing must match the reference image exactly.`;
+
+                // Log the complete prompt for debugging
+                console.log(`[Veo] 完整提示詞 (${modelId}):\n`, enhancedPrompt);
+                if (onStatusUpdate) {
+                    onStatusUpdate(`準備提示詞: ${prompt.substring(0, 50)}...`);
+                }
+
                 parts.unshift({ text: enhancedPrompt });
 
                 const requestPayload = {
@@ -1090,7 +1102,7 @@ ${textToConvert}
                                 const veoResult = await generateVeoVideo(apiKey, aiUrl, promptToUse, targetDuration, (status) => {
                                     btnGenVideo.innerHTML = `<i class="fa-solid fa-film"></i> Veo3: ${status} (場景 ${i + 1})`;
                                     addProductionLog(`Veo3 [S${sceneNum}]: ${status}`, 'info');
-                                });
+                                }, visualDetails);
 
                                 if (veoResult && veoResult.videoBase64) {
                                     sceneResult.veoVideo = veoResult.videoBase64;
