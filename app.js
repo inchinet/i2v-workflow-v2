@@ -394,7 +394,7 @@ ${textToConvert}
     let lockedImageModel = null;
 
     // Helper: Call Google Gemini for Image Generation (Dynamic Discovery)
-    const generateAIImage = async (apiKey, prompt, referenceImageBase64 = null, onStatusUpdate = null, aspectRatio = "4:3") => {
+    const generateAIImage = async (apiKey, prompt, referenceImageBase64 = null, onStatusUpdate = null, aspectRatio = "4:3", visualDetails = "") => {
         const sleep = (ms) => new Promise(r => setTimeout(r, ms));
         const allErrors = [];
 
@@ -422,6 +422,9 @@ ${textToConvert}
 
                 let finalPrompt = '';
 
+                // Append visual details if provided
+                const visualContext = visualDetails ? `\n\nVISUAL & LOCATION CONSISTENCY LOCK (MANDATORY):\n${visualDetails}\nEnsure these visual details (appearance, environment, lighting) are strictly followed unless the scene description explicitly overrides them.` : "";
+
                 // CRITICAL: Reference image instructions come FIRST for maximum priority
                 if (referenceImageBase64) {
                     finalPrompt = `🔴 CRITICAL PRIORITY - FACIAL IDENTITY LOCK 🔴
@@ -434,6 +437,8 @@ ${textToConvert}
                     5. Match the reference photo's hairstyle, hair color, and facial features precisely
                     6. If the reference shows an Asian person, the output MUST be Asian. If Caucasian, output MUST be Caucasian. If African, output MUST be African.
                     
+                    ${visualContext}
+
                     **SCENE DESCRIPTION (Secondary Priority):**
                     Generate a photorealistic 8k image in ${aspectInstruction} format showing: ${prompt}
                     
@@ -446,6 +451,9 @@ ${textToConvert}
                     ⚠️ REMINDER: The character's face, ethnicity, and race MUST match the reference image EXACTLY. This is non-negotiable.`;
                 } else {
                     finalPrompt = `生成一張真實照片級別的 8k 圖像，格式為 ${aspectInstruction}，內容：${prompt}。
+                    
+                    ${visualContext}
+
                     風格要求：
                     - 必須是真實攝影照片風格（photorealistic）
                     - 真實的人類面孔和皮膚紋理
@@ -565,6 +573,9 @@ ${textToConvert}
 
             let finalPrompt = '';
 
+            // Append visual details if provided
+            const visualContext = visualDetails ? `\n\nVISUAL & LOCATION CONSISTENCY LOCK (MANDATORY):\n${visualDetails}\nEnsure these visual details (appearance, environment, lighting) are strictly followed unless the scene description explicitly overrides them.` : "";
+
             // CRITICAL: Reference image instructions come FIRST for maximum priority
             if (referenceImageBase64) {
                 finalPrompt = `🔴 CRITICAL PRIORITY - FACIAL IDENTITY LOCK 🔴
@@ -577,6 +588,8 @@ ${textToConvert}
                 5. Match the reference photo's hairstyle, hair color, and facial features precisely
                 6. If the reference shows an Asian person, the output MUST be Asian. If Caucasian, output MUST be Caucasian. If African, output MUST be African.
                 
+                ${visualContext}
+
                 **SCENE DESCRIPTION (Secondary Priority):**
                 Generate a photorealistic 8k image in ${aspectInstruction} format showing: ${prompt}
                 
@@ -589,6 +602,9 @@ ${textToConvert}
                 ⚠️ REMINDER: The character's face, ethnicity, and race MUST match the reference image EXACTLY. This is non-negotiable.`;
             } else {
                 finalPrompt = `生成一張真實照片級別的 8k 圖像，格式為 ${aspectInstruction}，內容：${prompt}。
+                
+                ${visualContext}
+
                 風格要求：
                 - 必須是真實攝影照片風格（photorealistic）
                 - 真實的人類面孔和皮膚紋理
@@ -1084,7 +1100,7 @@ ${textToConvert}
                     const aiUrl = await generateAIImage(apiKey, promptToUse, refImage, (statusMsg) => {
                         btnGenVideo.innerHTML = `<i class="fa-solid fa-hourglass-half"></i> 場景 ${sceneNum}: ${statusMsg}`;
                         addProductionLog(`AI 圖像 [S${sceneNum}]: ${statusMsg}`, 'info');
-                    }, aspectRatio);
+                    }, aspectRatio, visualDetails);
 
                     if (aiUrl) {
                         sceneResult.url = aiUrl;
