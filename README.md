@@ -1,6 +1,13 @@
 # I2V 工作流程 V2 - 分場影片生成器
 
 > **注意**: 需要 VPN 連接到美國才能訪問 Google Gemini API
+>
+> ![UI](https://github.com/inchinet/i2v-workflow-v2/blob/master/1.jpg)
+> ![UI](https://github.com/inchinet/i2v-workflow-v2/blob/master/2.jpg)
+> ![UI](https://github.com/inchinet/i2v-workflow-v2/blob/master/3.jpg)
+> ![UI](https://github.com/inchinet/i2v-workflow-v2/blob/master/4.jpg)
+
+
 
 一個智能的圖像轉影片工作流程，可將您自己編寫的場景轉換為專業的電影級影片，配有**廣東話對白**和環境音效。
 
@@ -287,3 +294,4 @@ i2v-workflow-v2/
 輸出：男主角阿明緊張地問女主角阿花想喝什麼，然後說自己要美式咖啡不加糖。
       女主角阿花笑著問他是否知道美式咖啡是什麼。保持人物容貌, 髮型衣着, 化妝。
 ```
+
