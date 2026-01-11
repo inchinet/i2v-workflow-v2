@@ -489,3 +489,53 @@ h2 {
     border: 1px dashed rgba(255, 255, 255, 0.2);
     opacity: 0.7;
 }
+/* Convert Dialogue Button */
+.convert-btn {
+    background: rgba(162, 210, 255, 0.15);
+    border: 1px solid rgba(162, 210, 255, 0.3);
+    color: rgba(162, 210, 255, 0.9);
+    padding: 0.4rem 0.8rem;
+    font-size: 0.75rem;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 500;
+    backdrop-filter: blur(4px);
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    white-space: nowrap;
+}
+
+.convert-btn:hover {
+    background: rgba(162, 210, 255, 0.25);
+    border-color: rgba(162, 210, 255, 0.5);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(162, 210, 255, 0.2);
+}
+
+.convert-btn:active {
+    transform: translateY(0);
+}
+
+.convert-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.convert-btn i {
+    font-size: 0.9em;
+}
+
+.convert-btn.loading i {
+    animation: rotate 1s linear infinite;
+}
+
+@keyframes rotate {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}

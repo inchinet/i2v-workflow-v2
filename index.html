@@ -94,87 +94,143 @@
 
             <div class="glass-card full-width">
                 <h3><i class="fa-solid fa-pen-nib"></i> 場景描述 (繁體中文/廣東話對白)</h3>
-                <p style="font-size:0.9em; color:rgba(255,255,255,0.7); margin-bottom:1rem;">
+                <p style="font-size:0.9em; color:rgba(255,255,255,0.7); margin-bottom:0.5rem;">
                     請輸入每個場景的內容。第一個場景為必填，其餘為選填。每個場景將生成約8秒的影片。
                 </p>
+                <div
+                    style="background:rgba(66,133,244,0.1); border-left:3px solid rgba(66,133,244,0.6); padding:0.8rem; border-radius:4px; margin-bottom:1rem; font-size:0.85em;">
+                    <strong><i class="fa-solid fa-lightbulb"></i> 對白轉換提示：</strong><br>
+                    您可以用劇本格式寫對白，然後點擊 <span style="color:#a2d2ff;">🔄 轉換對白</span> 按鈕自動轉換為敘述格式。<br>
+                    <span style="opacity:0.8;">例如："阿明: 你好！" → "男主角阿明說你好。保持人物容貌, 髮型衣着, 化妝。"</span>
+                </div>
 
                 <!-- Scene 1 - Required -->
                 <div class="scene-input-group">
                     <label><i class="fa-solid fa-1"></i> 場景 1 (必填) *</label>
-                    <textarea id="scene-1" required maxlength="500"
+                    <textarea id="scene-1" required maxlength="5000"
                         placeholder="例如：兩位情侶在咖啡座，女主角微笑看著男主角，男主角害羞地點頭回應。保持人物容貌, 髮型衣着, 化妝。"></textarea>
-                    <div class="char-count"><span id="char-1">0</span>/500</div>
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-top:5px;">
+                        <div class="char-count"><span id="char-1">0</span>/5000</div>
+                        <button type="button" class="convert-btn" data-scene="1" title="轉換對白格式為敘述格式">
+                            <i class="fa-solid fa-rotate"></i> 轉換對白
+                        </button>
+                    </div>
                 </div>
 
                 <!-- Scene 2 - Optional -->
                 <div class="scene-input-group">
                     <label><i class="fa-solid fa-2"></i> 場景 2 (選填)</label>
-                    <textarea id="scene-2" maxlength="500"
+                    <textarea id="scene-2" maxlength="5000"
                         placeholder="例如：鏡頭轉到海邊，兩人手拖手散步，女主角開心地笑。保持人物容貌, 髮型衣着, 化妝。"></textarea>
-                    <div class="char-count"><span id="char-2">0</span>/500</div>
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-top:5px;">
+                        <div class="char-count"><span id="char-2">0</span>/5000</div>
+                        <button type="button" class="convert-btn" data-scene="2" title="轉換對白格式為敘述格式">
+                            <i class="fa-solid fa-rotate"></i> 轉換對白
+                        </button>
+                    </div>
                 </div>
 
                 <!-- Scene 3 - Optional -->
                 <div class="scene-input-group">
                     <label><i class="fa-solid fa-3"></i> 場景 3 (選填)</label>
-                    <textarea id="scene-3" maxlength="500"
+                    <textarea id="scene-3" maxlength="5000"
                         placeholder="例如：女主角特寫，她望著男主角，眼神充滿愛意。保持人物容貌, 髮型衣着, 化妝。"></textarea>
-                    <div class="char-count"><span id="char-3">0</span>/500</div>
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-top:5px;">
+                        <div class="char-count"><span id="char-3">0</span>/5000</div>
+                        <button type="button" class="convert-btn" data-scene="3" title="轉換對白格式為敘述格式">
+                            <i class="fa-solid fa-rotate"></i> 轉換對白
+                        </button>
+                    </div>
                 </div>
 
                 <!-- Scene 4 - Optional -->
                 <div class="scene-input-group">
                     <label><i class="fa-solid fa-4"></i> 場景 4 (選填)</label>
-                    <textarea id="scene-4" maxlength="500" placeholder="例如：男主角特寫，他點頭微笑回應。保持人物容貌, 髮型衣着, 化妝。"></textarea>
-                    <div class="char-count"><span id="char-4">0</span>/500</div>
+                    <textarea id="scene-4" maxlength="5000" placeholder="例如：男主角特寫，他點頭微笑回應。保持人物容貌, 髮型衣着, 化妝。"></textarea>
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-top:5px;">
+                        <div class="char-count"><span id="char-4">0</span>/5000</div>
+                        <button type="button" class="convert-btn" data-scene="4" title="轉換對白格式為敘述格式">
+                            <i class="fa-solid fa-rotate"></i> 轉換對白
+                        </button>
+                    </div>
                 </div>
 
                 <!-- Scene 5 - Optional -->
                 <div class="scene-input-group">
                     <label><i class="fa-solid fa-5"></i> 場景 5 (選填)</label>
-                    <textarea id="scene-5" maxlength="500"
+                    <textarea id="scene-5" maxlength="5000"
                         placeholder="例如：兩人一起走出咖啡廳，鏡頭慢慢拉遠。保持人物容貌, 髮型衣着, 化妝。"></textarea>
-                    <div class="char-count"><span id="char-5">0</span>/500</div>
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-top:5px;">
+                        <div class="char-count"><span id="char-5">0</span>/5000</div>
+                        <button type="button" class="convert-btn" data-scene="5" title="轉換對白格式為敘述格式">
+                            <i class="fa-solid fa-rotate"></i> 轉換對白
+                        </button>
+                    </div>
                 </div>
 
                 <!-- Scene 6 - Optional -->
                 <div class="scene-input-group">
                     <label><i class="fa-solid fa-6"></i> 場景 6 (選填)</label>
-                    <textarea id="scene-6" maxlength="500"
+                    <textarea id="scene-6" maxlength="5000"
                         placeholder="例如：轉場到餐廳，兩人坐下，女主角環顧四周欣賞環境。保持人物容貌, 髮型衣着, 化妝。"></textarea>
-                    <div class="char-count"><span id="char-6">0</span>/500</div>
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-top:5px;">
+                        <div class="char-count"><span id="char-6">0</span>/5000</div>
+                        <button type="button" class="convert-btn" data-scene="6" title="轉換對白格式為敘述格式">
+                            <i class="fa-solid fa-rotate"></i> 轉換對白
+                        </button>
+                    </div>
                 </div>
 
                 <!-- Scene 7 - Optional -->
                 <div class="scene-input-group">
                     <label><i class="fa-solid fa-7"></i> 場景 7 (選填)</label>
-                    <textarea id="scene-7" maxlength="500"
+                    <textarea id="scene-7" maxlength="5000"
                         placeholder="例如：男主角舉杯微笑，女主角也舉杯回應。保持人物容貌, 髮型衣着, 化妝。"></textarea>
-                    <div class="char-count"><span id="char-7">0</span>/500</div>
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-top:5px;">
+                        <div class="char-count"><span id="char-7">0</span>/5000</div>
+                        <button type="button" class="convert-btn" data-scene="7" title="轉換對白格式為敘述格式">
+                            <i class="fa-solid fa-rotate"></i> 轉換對白
+                        </button>
+                    </div>
                 </div>
 
                 <!-- Scene 8 - Optional -->
                 <div class="scene-input-group">
                     <label><i class="fa-solid fa-8"></i> 場景 8 (選填)</label>
-                    <textarea id="scene-8" maxlength="500"
+                    <textarea id="scene-8" maxlength="5000"
                         placeholder="例如：兩人碰杯，鏡頭特寫杯子碰撞的瞬間。保持人物容貌, 髮型衣着, 化妝。"></textarea>
-                    <div class="char-count"><span id="char-8">0</span>/500</div>
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-top:5px;">
+                        <div class="char-count"><span id="char-8">0</span>/5000</div>
+                        <button type="button" class="convert-btn" data-scene="8" title="轉換對白格式為敘述格式">
+                            <i class="fa-solid fa-rotate"></i> 轉換對白
+                        </button>
+                    </div>
                 </div>
 
                 <!-- Scene 9 - Optional -->
                 <div class="scene-input-group">
                     <label><i class="fa-solid fa-9"></i> 場景 9 (選填)</label>
-                    <textarea id="scene-9" maxlength="500"
+                    <textarea id="scene-9" maxlength="5000"
                         placeholder="例如：夜晚，兩人在街上散步，女主角開心地笑著。保持人物容貌, 髮型衣着, 化妝。"></textarea>
-                    <div class="char-count"><span id="char-9">0</span>/500</div>
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-top:5px;">
+                        <div class="char-count"><span id="char-9">0</span>/5000</div>
+                        <button type="button" class="convert-btn" data-scene="9" title="轉換對白格式為敘述格式">
+                            <i class="fa-solid fa-rotate"></i> 轉換對白
+                        </button>
+                    </div>
                 </div>
 
                 <!-- Scene 10 - Optional -->
                 <div class="scene-input-group">
                     <label><i class="fa-solid fa-10"></i> 場景 10 (選填)</label>
-                    <textarea id="scene-10" maxlength="500"
+                    <textarea id="scene-10" maxlength="5000"
                         placeholder="例如：最後一幕，兩人溫柔擁抱，鏡頭慢慢淡出。保持人物容貌, 髮型衣着, 化妝。"></textarea>
-                    <div class="char-count"><span id="char-10">0</span>/500</div>
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-top:5px;">
+                        <div class="char-count"><span id="char-10">0</span>/5000</div>
+                        <button type="button" class="convert-btn" data-scene="10" title="轉換對白格式為敘述格式">
+                            <i class="fa-solid fa-rotate"></i> 轉換對白
+                        </button>
+                    </div>
                 </div>
             </div>
         </section>

@@ -157,6 +157,147 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
+    // --- Dialogue to Narrative Converter ---
+    const convertDialogueToNarrative = async (dialogueText, sceneNumber) => {
+        const apiKey = document.getElementById('api-key').value.trim();
+
+        if (!apiKey) {
+            alert('請先輸入 Google Gemini API 金鑰以使用對白轉換功能。');
+            return null;
+        }
+
+        if (!dialogueText.trim()) {
+            alert('場景描述為空，無需轉換。');
+            return null;
+        }
+
+        // Check if there's a structured dialogue section
+        const dialogueMatch = dialogueText.match(/\*\*Dialogue:\*\*\s*([\s\S]*?)(?=\n\n|$)/i);
+
+        let textToConvert;
+        let hasStructuredDialogue = false;
+
+        if (dialogueMatch) {
+            // Found structured dialogue section
+            textToConvert = dialogueMatch[1].trim();
+            hasStructuredDialogue = true;
+        } else {
+            // Check for simple dialogue format (阿明: ... 阿花: ...)
+            const simpleDialoguePattern = /[\u4e00-\u9fff]+:\s*\([^)]*\)|[\u4e00-\u9fff]+:\s*.+/;
+            if (simpleDialoguePattern.test(dialogueText)) {
+                textToConvert = dialogueText;
+            } else {
+                // Already in narrative format or no dialogue found
+                alert('未檢測到對白格式。場景描述似乎已經是敘述格式，或沒有找到對白部分。');
+                return null;
+            }
+        }
+
+        try {
+            const prompt = `你是一個專業的電影場景描述轉換助手。請將以下劇本格式的對白轉換為敘述性的場景描述，適合用於 AI 影片生成。
+
+重要規則：
+1. 將角色名稱轉換為"男主角"或"女主角"（如果有具體名字，保留名字，例如"男主角阿明"、"女主角阿花"）
+2. 保留所有情感描述和動作指示
+3. 將對白內容轉換為敘述形式，描述角色說了什麼
+4. 保持廣東話用詞和語氣
+5. 在結尾添加"保持人物容貌, 髮型衣着, 化妝。"
+6. 只輸出轉換後的場景描述，不要添加任何解釋或額外文字
+
+原始對白：
+${textToConvert}
+
+轉換後的場景描述：`;
+
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${apiKey}`;
+
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    contents: [{
+                        parts: [{ text: prompt }]
+                    }]
+                })
+            });
+
+            const data = await response.json();
+
+            if (data.error) {
+                throw new Error(data.error.message || '轉換失敗');
+            }
+
+            if (data.candidates && data.candidates[0].content && data.candidates[0].content.parts) {
+                const convertedText = data.candidates[0].content.parts[0].text.trim();
+
+                // If there was a structured dialogue section, replace only that part
+                if (hasStructuredDialogue) {
+                    const updatedText = dialogueText.replace(
+                        /\*\*Dialogue:\*\*\s*[\s\S]*?(?=\n\n|$)/i,
+                        `**Narrative Description:**\n${convertedText}`
+                    );
+                    return updatedText;
+                } else {
+                    // Return just the converted text
+                    return convertedText;
+                }
+            }
+
+            throw new Error('無法從 API 響應中提取轉換結果');
+
+        } catch (error) {
+            console.error('對白轉換錯誤:', error);
+            alert(`轉換失敗: ${error.message}`);
+            return null;
+        }
+    };
+
+    // --- Setup Convert Buttons ---
+    const convertButtons = document.querySelectorAll('.convert-btn');
+    convertButtons.forEach(btn => {
+        btn.addEventListener('click', async () => {
+            const sceneNumber = btn.getAttribute('data-scene');
+            const textarea = document.getElementById(`scene-${sceneNumber}`);
+
+            if (!textarea) return;
+
+            const originalText = textarea.value;
+
+            // Disable button and show loading state
+            btn.disabled = true;
+            btn.classList.add('loading');
+            const originalBtnText = btn.innerHTML;
+            btn.innerHTML = '<i class="fa-solid fa-rotate"></i> 轉換中...';
+
+            try {
+                const convertedText = await convertDialogueToNarrative(originalText, sceneNumber);
+
+                if (convertedText) {
+                    textarea.value = convertedText;
+                    // Update character counter
+                    const counter = charCounters[parseInt(sceneNumber) - 1];
+                    if (counter) {
+                        counter.textContent = convertedText.length;
+                    }
+                    // Brief success feedback
+                    btn.innerHTML = '<i class="fa-solid fa-check"></i> 已轉換';
+                    setTimeout(() => {
+                        btn.innerHTML = originalBtnText;
+                    }, 2000);
+                }
+            } catch (error) {
+                console.error('轉換錯誤:', error);
+            } finally {
+                btn.disabled = false;
+                btn.classList.remove('loading');
+                setTimeout(() => {
+                    btn.innerHTML = originalBtnText;
+                }, 2000);
+            }
+        });
+    });
+
+
     // --- Helper: Collect User Scenes ---
     const collectUserScenes = () => {
         const scenes = [];
@@ -279,21 +420,39 @@ document.addEventListener('DOMContentLoaded', () => {
                     ? "垂直肖像格式（高於寬，3:4 比例）"
                     : "水平橫向格式（寬於高，4:3 比例）";
 
-                let finalPrompt = `生成一張真實照片級別的 8k 圖像，格式為 ${aspectInstruction}，內容：${prompt}。
-                風格要求：
-                - 必須是真實攝影照片風格（photorealistic）
-                - 真實的人類面孔和皮膚紋理
-                - 絕對不要動漫、插畫、卡通或繪畫風格
-                - 使用真實的光影和景深效果`;
+                let finalPrompt = '';
+
+                // CRITICAL: Reference image instructions come FIRST for maximum priority
                 if (referenceImageBase64) {
-                    finalPrompt += `
-                    重要指示（面部鎖定）：
-                    1. 此場景中的角色必須與附加的參考圖像中的人物具有完全相同的面部、髮型和面部結構。
-                    2. 保持 100% 面部身份一致性。
-                    3. 不要改變人物的種族或關鍵特徵。
-                    4. 這是同一個人在電影場景中表演。
-                    5. 必須是真實照片風格，不是動漫或插畫。`;
+                    finalPrompt = `🔴 CRITICAL PRIORITY - FACIAL IDENTITY LOCK 🔴
+
+                    **MANDATORY REQUIREMENTS (HIGHEST PRIORITY):**
+                    1. The person in the generated image MUST have the EXACT SAME FACE as the attached reference image
+                    2. PRESERVE 100% FACIAL IDENTITY - same ethnicity, race, skin tone, facial structure, eye shape, nose, mouth
+                    3. DO NOT change the person's race or ethnicity under ANY circumstances
+                    4. This is the SAME PERSON performing in a movie scene - maintain complete facial consistency
+                    5. Match the reference photo's hairstyle, hair color, and facial features precisely
+                    6. If the reference shows an Asian person, the output MUST be Asian. If Caucasian, output MUST be Caucasian. If African, output MUST be African.
+                    
+                    **SCENE DESCRIPTION (Secondary Priority):**
+                    Generate a photorealistic 8k image in ${aspectInstruction} format showing: ${prompt}
+                    
+                    **STYLE REQUIREMENTS:**
+                    - Photorealistic photography style (真實攝影照片風格)
+                    - Real human faces with skin texture
+                    - Absolutely NO anime, illustration, cartoon, or painting styles
+                    - Natural lighting and depth of field effects
+                    
+                    ⚠️ REMINDER: The character's face, ethnicity, and race MUST match the reference image EXACTLY. This is non-negotiable.`;
+                } else {
+                    finalPrompt = `生成一張真實照片級別的 8k 圖像，格式為 ${aspectInstruction}，內容：${prompt}。
+                    風格要求：
+                    - 必須是真實攝影照片風格（photorealistic）
+                    - 真實的人類面孔和皮膚紋理
+                    - 絕對不要動漫、插畫、卡通或繪畫風格
+                    - 使用真實的光影和景深效果`;
                 }
+
                 parts.push({ text: finalPrompt });
 
                 if (referenceImageBase64) {
@@ -404,21 +563,39 @@ document.addEventListener('DOMContentLoaded', () => {
                 ? "垂直肖像格式（高於寬，3:4 比例）"
                 : "水平橫向格式（寬於高，4:3 比例）";
 
-            let finalPrompt = `生成一張真實照片級別的 8k 圖像，格式為 ${aspectInstruction}，內容：${prompt}。
-            風格要求：
-            - 必須是真實攝影照片風格（photorealistic）
-            - 真實的人類面孔和皮膚紋理
-            - 絕對不要動漫、插畫、卡通或繪畫風格
-            - 使用真實的光影和景深效果`;
+            let finalPrompt = '';
+
+            // CRITICAL: Reference image instructions come FIRST for maximum priority
             if (referenceImageBase64) {
-                finalPrompt += `
-                重要指示（面部鎖定）：
-                1. 此場景中的角色必須與附加的參考圖像中的人物具有完全相同的面部、髮型和面部結構。
-                2. 保持 100% 面部身份一致性。
-                3. 不要改變人物的種族或關鍵特徵。
-                4. 這是同一個人在電影場景中表演。
-                5. 必須是真實照片風格，不是動漫或插畫。`;
+                finalPrompt = `🔴 CRITICAL PRIORITY - FACIAL IDENTITY LOCK 🔴
+
+                **MANDATORY REQUIREMENTS (HIGHEST PRIORITY):**
+                1. The person in the generated image MUST have the EXACT SAME FACE as the attached reference image
+                2. PRESERVE 100% FACIAL IDENTITY - same ethnicity, race, skin tone, facial structure, eye shape, nose, mouth
+                3. DO NOT change the person's race or ethnicity under ANY circumstances
+                4. This is the SAME PERSON performing in a movie scene - maintain complete facial consistency
+                5. Match the reference photo's hairstyle, hair color, and facial features precisely
+                6. If the reference shows an Asian person, the output MUST be Asian. If Caucasian, output MUST be Caucasian. If African, output MUST be African.
+                
+                **SCENE DESCRIPTION (Secondary Priority):**
+                Generate a photorealistic 8k image in ${aspectInstruction} format showing: ${prompt}
+                
+                **STYLE REQUIREMENTS:**
+                - Photorealistic photography style (真實攝影照片風格)
+                - Real human faces with skin texture
+                - Absolutely NO anime, illustration, cartoon, or painting styles
+                - Natural lighting and depth of field effects
+                
+                ⚠️ REMINDER: The character's face, ethnicity, and race MUST match the reference image EXACTLY. This is non-negotiable.`;
+            } else {
+                finalPrompt = `生成一張真實照片級別的 8k 圖像，格式為 ${aspectInstruction}，內容：${prompt}。
+                風格要求：
+                - 必須是真實攝影照片風格（photorealistic）
+                - 真實的人類面孔和皮膚紋理
+                - 絕對不要動漫、插畫、卡通或繪畫風格
+                - 使用真實的光影和景深效果`;
             }
+
             parts.push({ text: finalPrompt });
 
             if (referenceImageBase64) {
