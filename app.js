@@ -172,7 +172,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         // Check if there's a structured dialogue section
-        const dialogueMatch = dialogueText.match(/\*\*Dialogue:\*\*\s*([\s\S]*?)(?=\n\n|$)/i);
+        const dialogueMatch = dialogueText.match(/(?:\*\*Dialogue:\*\*|Dialogue:|對白:)\s*([\s\S]*?)(?=\n\n|$)/i);
 
         let textToConvert;
         let hasStructuredDialogue = false;
@@ -233,7 +233,7 @@ ${textToConvert}
                 // If there was a structured dialogue section, replace only that part
                 if (hasStructuredDialogue) {
                     const updatedText = dialogueText.replace(
-                        /\*\*Dialogue:\*\*\s*[\s\S]*?(?=\n\n|$)/i,
+                        /(?:\*\*Dialogue:\*\*|Dialogue:|對白:)\s*[\s\S]*?(?=\n\n|$)/i,
                         `**Narrative Description:**\n${convertedText}`
                     );
                     return updatedText;
