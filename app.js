@@ -423,7 +423,9 @@ ${textToConvert}
                 let finalPrompt = '';
 
                 // Append visual details if provided
-                const visualContext = visualDetails ? `\n\nVISUAL & LOCATION CONSISTENCY LOCK (MANDATORY):\n${visualDetails}\nEnsure these visual details (appearance, environment, lighting) are strictly followed unless the scene description explicitly overrides them.` : "";
+                const visualHeader = visualDetails && visualDetails.trim()
+                    ? `視覺一致性要求 (VISUAL LOOK LOCK)：${visualDetails.trim()}\n\n`
+                    : "";
 
                 // CRITICAL: Reference image instructions come FIRST for maximum priority
                 if (referenceImageBase64) {
@@ -437,7 +439,7 @@ ${textToConvert}
                     5. Match the reference photo's hairstyle, hair color, and facial features precisely
                     6. If the reference shows an Asian person, the output MUST be Asian. If Caucasian, output MUST be Caucasian. If African, output MUST be African.
                     
-                    ${visualContext}
+                    ${visualHeader}Ensure these visual details (appearance, environment, lighting) are strictly followed unless the scene description explicitly overrides them.
 
                     **SCENE DESCRIPTION (Secondary Priority):**
                     Generate a photorealistic 8k image in ${aspectInstruction} format showing: ${prompt}
@@ -450,10 +452,8 @@ ${textToConvert}
                     
                     ⚠️ REMINDER: The character's face, ethnicity, and race MUST match the reference image EXACTLY. This is non-negotiable.`;
                 } else {
-                    finalPrompt = `生成一張真實照片級別的 8k 圖像，格式為 ${aspectInstruction}，內容：${prompt}。
+                    finalPrompt = `${visualHeader}生成一張真實照片級別的 8k 圖像，格式為 ${aspectInstruction}，內容：${prompt}。
                     
-                    ${visualContext}
-
                     風格要求：
                     - 必須是真實攝影照片風格（photorealistic）
                     - 真實的人類面孔和皮膚紋理
@@ -574,7 +574,9 @@ ${textToConvert}
             let finalPrompt = '';
 
             // Append visual details if provided
-            const visualContext = visualDetails ? `\n\nVISUAL & LOCATION CONSISTENCY LOCK (MANDATORY):\n${visualDetails}\nEnsure these visual details (appearance, environment, lighting) are strictly followed unless the scene description explicitly overrides them.` : "";
+            const visualHeader = visualDetails && visualDetails.trim()
+                ? `視覺一致性要求 (VISUAL LOOK LOCK)：${visualDetails.trim()}\n\n`
+                : "";
 
             // CRITICAL: Reference image instructions come FIRST for maximum priority
             if (referenceImageBase64) {
@@ -588,7 +590,7 @@ ${textToConvert}
                 5. Match the reference photo's hairstyle, hair color, and facial features precisely
                 6. If the reference shows an Asian person, the output MUST be Asian. If Caucasian, output MUST be Caucasian. If African, output MUST be African.
                 
-                ${visualContext}
+                ${visualHeader}Ensure these visual details (appearance, environment, lighting) are strictly followed unless the scene description explicitly overrides them.
 
                 **SCENE DESCRIPTION (Secondary Priority):**
                 Generate a photorealistic 8k image in ${aspectInstruction} format showing: ${prompt}
@@ -601,10 +603,8 @@ ${textToConvert}
                 
                 ⚠️ REMINDER: The character's face, ethnicity, and race MUST match the reference image EXACTLY. This is non-negotiable.`;
             } else {
-                finalPrompt = `生成一張真實照片級別的 8k 圖像，格式為 ${aspectInstruction}，內容：${prompt}。
+                finalPrompt = `${visualHeader}生成一張真實照片級別的 8k 圖像，格式為 ${aspectInstruction}，內容：${prompt}。
                 
-                ${visualContext}
-
                 風格要求：
                 - 必須是真實攝影照片風格（photorealistic）
                 - 真實的人類面孔和皮膚紋理
@@ -747,18 +747,19 @@ ${textToConvert}
                 }
 
                 // Enhanced prompt for Cantonese audio and clothing consistency
-                // Append user's locked visual details if provided
-                const visualDetailsText = visualDetails && visualDetails.trim()
-                    ? `\n\n視覺一致性要求：${visualDetails.trim()}`
-                    : '';
+                // CRITICAL SHIFT: Visual details moved to START for better adherence
+                let explicitVisuals = "";
+                if (visualDetails && visualDetails.trim()) {
+                    explicitVisuals = `視覺一致性要求 (VISUAL LOOK LOCK)：${visualDetails.trim()}\n\n`;
+                }
 
-                const enhancedPrompt = `生成一段 ${duration} 秒的電影級影片，基於以下分鏡：${prompt}。
+                const enhancedPrompt = `${explicitVisuals}生成一段 ${duration} 秒的電影級影片，基於以下分鏡：${prompt}。
                 
                 重要要求：
                 1. 音頻：所有角色對白和旁白必須100%使用廣東話（粵語/Cantonese）。
                 2. 服裝：角色必須保持與參考圖像完全相同的服裝、髮型和配飾。
                 3. 音效：包含自然環境音效和電影背景音樂。
-                4. 動作：確保動作逼真且高保真度。${visualDetailsText}
+                4. 動作：確保動作逼真且高保真度。
                 
                 CRITICAL: All dialogue and narration must be in Cantonese (廣東話). Character clothing must match the reference image exactly.`;
 
