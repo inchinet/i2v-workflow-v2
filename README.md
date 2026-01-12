@@ -191,6 +191,8 @@ i2v-workflow-v2/
 系統自動為每個場景生成以下格式的提示詞發送給 Veo 3：
 
 ```
+🔴 CRITICAL: Facial appearance MUST be based on the provided reference image (Strict Face Consistency). 🔴
+
 視覺一致性要求 (VISUAL LOOK LOCK)：[您在「鎖定視覺細節」欄位中輸入的內容]
 
 生成一段 [duration] 秒的電影級影片，基於以下分鏡：[您的場景描述]。
@@ -201,7 +203,7 @@ i2v-workflow-v2/
 3. 音效：包含自然環境音效和電影背景音樂。
 4. 動作：確保動作逼真且高保真度。
 
-CRITICAL: All dialogue and narration must be in Cantonese (廣東話). Facial appearance MUST be based on the provided reference image (Strict Face Consistency).
+CRITICAL: All dialogue and narration must be in Cantonese (廣東話). Facial consistency is paramount.
 ```
 
 **說明**：

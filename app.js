@@ -429,7 +429,7 @@ ${textToConvert}
 
                 // CRITICAL: Reference image instructions come FIRST for maximum priority
                 if (referenceImageBase64) {
-                    finalPrompt = `🔴 CRITICAL PRIORITY - FACIAL IDENTITY LOCK (Strict Face Consistency) 🔴
+                    finalPrompt = `🔴 CRITICAL: Facial appearance MUST be based on the provided reference image (Strict Face Consistency). 🔴
 
                     **MANDATORY REQUIREMENTS (HIGHEST PRIORITY):**
                     1. The person in the generated image MUST have the EXACT SAME FACE as the attached reference image (Strict Face Consistency)
@@ -580,7 +580,7 @@ ${textToConvert}
 
             // CRITICAL: Reference image instructions come FIRST for maximum priority
             if (referenceImageBase64) {
-                finalPrompt = `🔴 CRITICAL PRIORITY - FACIAL IDENTITY LOCK (Strict Face Consistency) 🔴
+                finalPrompt = `🔴 CRITICAL: Facial appearance MUST be based on the provided reference image (Strict Face Consistency). 🔴
 
                 **MANDATORY REQUIREMENTS (HIGHEST PRIORITY):**
                 1. The person in the generated image MUST have the EXACT SAME FACE as the attached reference image (Strict Face Consistency)
@@ -753,7 +753,7 @@ ${textToConvert}
                     explicitVisuals = `視覺一致性要求 (VISUAL LOOK LOCK)：${visualDetails.trim()}\n\n`;
                 }
 
-                const enhancedPrompt = `${explicitVisuals}生成一段 ${duration} 秒的電影級影片，基於以下分鏡：${prompt}。
+                const enhancedPrompt = `🔴 CRITICAL: Facial appearance MUST be based on the provided reference image (Strict Face Consistency). 🔴\n\n${explicitVisuals}生成一段 ${duration} 秒的電影級影片，基於以下分鏡：${prompt}。
                 
                 重要要求：
                 1. 音頻：所有角色對白和旁白必須100%使用廣東話（粵語/Cantonese）。
@@ -761,7 +761,7 @@ ${textToConvert}
                 3. 音效：包含自然環境音效和電影背景音樂。
                 4. 動作：確保動作逼真且高保真度。
                 
-                CRITICAL: All dialogue and narration must be in Cantonese (廣東話). Facial appearance MUST be based on the provided reference image (Strict Face Consistency).`;
+                CRITICAL: All dialogue and narration must be in Cantonese (廣東話). Facial consistency is paramount.`;
 
                 // Log the complete prompt for debugging
                 console.log(`[Veo] 完整提示詞 (${modelId}):\n`, enhancedPrompt);
