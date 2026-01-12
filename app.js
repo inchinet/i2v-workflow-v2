@@ -429,7 +429,7 @@ ${textToConvert}
 
                 // CRITICAL: Reference image instructions come FIRST for maximum priority
                 if (referenceImageBase64) {
-                    finalPrompt = `🔴 CRITICAL: Facial appearance MUST be based on the provided reference image (Strict Face Consistency). 🔴
+                    finalPrompt = `🔴 CRITICAL: Facial appearance MUST be based on the provided reference image (Strict Face Consistency). 臉部外觀必須以提供的參考圖片為準（嚴格保持臉部一致性）。 🔴
 
                     **MANDATORY REQUIREMENTS (HIGHEST PRIORITY):**
                     1. The person in the generated image MUST have the EXACT SAME FACE as the attached reference image (Strict Face Consistency)
@@ -580,7 +580,7 @@ ${textToConvert}
 
             // CRITICAL: Reference image instructions come FIRST for maximum priority
             if (referenceImageBase64) {
-                finalPrompt = `🔴 CRITICAL: Facial appearance MUST be based on the provided reference image (Strict Face Consistency). 🔴
+                finalPrompt = `🔴 CRITICAL: Facial appearance MUST be based on the provided reference image (Strict Face Consistency). 臉部外觀必須以提供的參考圖片為準（嚴格保持臉部一致性）。 🔴
 
                 **MANDATORY REQUIREMENTS (HIGHEST PRIORITY):**
                 1. The person in the generated image MUST have the EXACT SAME FACE as the attached reference image (Strict Face Consistency)
@@ -753,7 +753,7 @@ ${textToConvert}
                     explicitVisuals = `視覺一致性要求 (VISUAL LOOK LOCK)：${visualDetails.trim()}\n\n`;
                 }
 
-                const enhancedPrompt = `🔴 CRITICAL: Facial appearance MUST be based on the provided reference image (Strict Face Consistency). 🔴\n\n${explicitVisuals}生成一段 ${duration} 秒的電影級影片，基於以下分鏡：${prompt}。
+                const enhancedPrompt = `🔴 CRITICAL: Facial appearance MUST be based on the provided reference image (Strict Face Consistency). 臉部外觀必須以提供的參考圖片為準（嚴格保持臉部一致性）。 🔴\n\n${explicitVisuals}生成一段 ${duration} 秒的電影級影片，基於以下分鏡：${prompt}。
                 
                 重要要求：
                 1. 音頻：所有角色對白和旁白必須100%使用廣東話（粵語/Cantonese）。

@@ -191,7 +191,7 @@ i2v-workflow-v2/
 系統自動為每個場景生成以下格式的提示詞發送給 Veo 3：
 
 ```
-🔴 CRITICAL: Facial appearance MUST be based on the provided reference image (Strict Face Consistency). 🔴
+🔴 CRITICAL: Facial appearance MUST be based on the provided reference image (Strict Face Consistency). 臉部外觀必須以提供的參考圖片為準（嚴格保持臉部一致性）。 🔴
 
 視覺一致性要求 (VISUAL LOOK LOCK)：[您在「鎖定視覺細節」欄位中輸入的內容]
 
