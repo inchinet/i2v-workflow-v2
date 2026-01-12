@@ -429,10 +429,10 @@ ${textToConvert}
 
                 // CRITICAL: Reference image instructions come FIRST for maximum priority
                 if (referenceImageBase64) {
-                    finalPrompt = `🔴 CRITICAL PRIORITY - FACIAL IDENTITY LOCK 🔴
+                    finalPrompt = `🔴 CRITICAL PRIORITY - FACIAL IDENTITY LOCK (Strict Face Consistency) 🔴
 
                     **MANDATORY REQUIREMENTS (HIGHEST PRIORITY):**
-                    1. The person in the generated image MUST have the EXACT SAME FACE as the attached reference image
+                    1. The person in the generated image MUST have the EXACT SAME FACE as the attached reference image (Strict Face Consistency)
                     2. PRESERVE 100% FACIAL IDENTITY - same ethnicity, race, skin tone, facial structure, eye shape, nose, mouth
                     3. DO NOT change the person's race or ethnicity under ANY circumstances
                     4. This is the SAME PERSON performing in a movie scene - maintain complete facial consistency
@@ -580,10 +580,10 @@ ${textToConvert}
 
             // CRITICAL: Reference image instructions come FIRST for maximum priority
             if (referenceImageBase64) {
-                finalPrompt = `🔴 CRITICAL PRIORITY - FACIAL IDENTITY LOCK 🔴
+                finalPrompt = `🔴 CRITICAL PRIORITY - FACIAL IDENTITY LOCK (Strict Face Consistency) 🔴
 
                 **MANDATORY REQUIREMENTS (HIGHEST PRIORITY):**
-                1. The person in the generated image MUST have the EXACT SAME FACE as the attached reference image
+                1. The person in the generated image MUST have the EXACT SAME FACE as the attached reference image (Strict Face Consistency)
                 2. PRESERVE 100% FACIAL IDENTITY - same ethnicity, race, skin tone, facial structure, eye shape, nose, mouth
                 3. DO NOT change the person's race or ethnicity under ANY circumstances
                 4. This is the SAME PERSON performing in a movie scene - maintain complete facial consistency
@@ -757,11 +757,11 @@ ${textToConvert}
                 
                 重要要求：
                 1. 音頻：所有角色對白和旁白必須100%使用廣東話（粵語/Cantonese）。
-                2. 服裝：角色必須保持與參考圖像完全相同的服裝、髮型和配飾。
+                2. 服裝：請嚴格遵循「視覺一致性要求」內容，或依據場景描述。
                 3. 音效：包含自然環境音效和電影背景音樂。
                 4. 動作：確保動作逼真且高保真度。
                 
-                CRITICAL: All dialogue and narration must be in Cantonese (廣東話). Character clothing must match the reference image exactly.`;
+                CRITICAL: All dialogue and narration must be in Cantonese (廣東話). Facial appearance MUST be based on the provided reference image (Strict Face Consistency).`;
 
                 // Log the complete prompt for debugging
                 console.log(`[Veo] 完整提示詞 (${modelId}):\n`, enhancedPrompt);
