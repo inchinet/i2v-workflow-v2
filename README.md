@@ -75,7 +75,7 @@ start-server.bat
    - **🆕 兩種寫作方式**：
      
      **方式 1：直接寫敘述格式**（推薦）
-     - ✅ 「男主角阿明緊張地問女主角阿花想喝什麼，然後說自己要美式咖啡不加糖。女主角阿花笑著回應。保持人物容貌, 髮型衣着, 化妝。」
+     - ✅ 「男主角阿明緊張地問女主角阿花想喝什麼，然後說自己要美式咖啡不加糖。女主角阿花笑著回應。」
      
      **方式 2：寫劇本格式 + 使用轉換器**
      - 先寫劇本格式：「阿明: (緊張地) 喂，阿花，想飲乜嘢？我要杯美式，唔加糖。」
@@ -184,12 +184,45 @@ i2v-workflow-v2/
      *   **Priority 2: 服裝與環境 (Clothing & Env)** - 嚴格由**場景文字描述**決定（覆蓋參考照片的衣服）。
      *   **Priority 3: 視覺細節鎖定** - 補充髮型、化妝、日夜等細節。
  
+ ### NanoBananaPro 預設提示詞結構
+ 
+ 系統自動為每個場景生成以下格式的提示詞發送給圖像生成模型：
+ 
+ ```
+ 🔴 CRITICAL: Facial appearance MUST be based on the provided reference image (Strict Face Consistency). 臉部外觀必須以提供的參考圖片為準（嚴格保持臉部一致性）。 🔴
+ 
+ **PRIORITY 1: FACE & IDENTITY (FROM REFERENCE PHOTO):**
+ 1. The person in the generated image MUST have the EXACT SAME FACE as the attached reference image.
+ 2. PRESERVE 100% FACIAL IDENTITY (Eyes, Nose, Mouth, Bone Structure, Ethnicity).
+ 3. Do NOT change the face.
+ 
+ **PRIORITY 2: CLOTHING, ENVIRONMENT, CONTEXT (FROM TEXT DESCRIPTION):**
+ 1. **CLOTHING**: The clothing MUST match the Scene Description below. IGNORE the reference photo's clothes.
+ 2. **ENVIRONMENT**: The background and location MUST match the Scene Description.
+ 3. **ATMOSPHERE**: The lighting and mood MUST match the Text/Visual Details.
+ 
+ 視覺一致性要求 (VISUAL LOOK LOCK)：[您在「鎖定視覺細節」欄位中輸入的內容]
+ 
+ **SCENE DESCRIPTION (EXECUTE THIS FOR CLOTHING/ENV):**
+ Generate a photorealistic 8k image in [ASPECT RATIO] format showing: [您的場景描述]
+ 
+ **STYLE REQUIREMENTS:**
+ - Photorealistic photography style (真實攝影照片風格)
+ - Real human faces with skin texture
+ - Absolutely NO anime, illustration, cartoon, or painting styles
+ - Natural lighting and depth of field effects
+ 
+ ⚠️ REMINDER: FACE = Reference Photo. CLOTHING/ENV = Text Description.
+ ```
+ 
  ### Veo 3 預設提示詞結構
 
 系統自動為每個場景生成以下格式的提示詞發送給 Veo 3：
 
 ```
 🔴 CRITICAL: Facial appearance MUST be based on the provided reference image (Strict Face Consistency). 臉部外觀必須以提供的參考圖片為準（嚴格保持臉部一致性）。 🔴
+
+生成一段 [duration] 秒的電影級影片，基於以下分鏡：[您的場景描述]。
 
 **PRIORITY 1: FACE (FROM REFERENCE)**
 - 嚴格保持參考圖中的人物容貌。
@@ -199,13 +232,15 @@ i2v-workflow-v2/
 2. **對白 & 語氣**：人物對話內容和氣氛必須符合文字描述。
 3. **語言**：所有對白必須 100% 使用廣東話 (Cantonese)。
 
+[您在「鎖定視覺細節」欄位中輸入的內容] (Ensure these visual details are followed unless the scene description explicitly overrides them).
+
 CRITICAL: All dialogue in Cantonese. Face matches Photo. Clothes/Env match Text.
 ```
 
 **說明**：
 - `[duration]`：影片時長（預設 8 秒）
 - `[您的場景描述]`：您在場景文字框中輸入的內容
-- `[您在「鎖定視覺細節」欄位中輸入的內容]`：例如「保持人物容貌, 髮型衣着, 耳環眼鏡, 化妝, 場景, 日夜, 室外/室內, 除非轉場境」
+- `[您在「鎖定視覺細節」欄位中輸入的內容]`：例如「保持髮型衣着, 耳環眼鏡, 化妝, 場景, 日夜, 室外/室內, 除非轉場境」
 
 ### 廣東話音頻生成
 

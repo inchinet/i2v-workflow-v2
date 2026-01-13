@@ -754,7 +754,7 @@ const generateVeoVideo = async (apiKey, imageBase64, prompt, duration = 5, onSta
                 explicitVisuals = `視覺一致性要求 (VISUAL LOOK LOCK)：${visualDetails.trim()}\n\n`;
             }
 
-            const enhancedPrompt = `🔴 CRITICAL: Facial appearance MUST be based on the provided reference image (Strict Face Consistency). 臉部外觀必須以提供的參考圖片為準（嚴格保持臉部一致性）。 🔴\n\n${explicitVisuals}生成一段 ${duration} 秒的電影級影片，基於以下分鏡：${prompt}。
+            const enhancedPrompt = `🔴 CRITICAL: Facial appearance MUST be based on the provided reference image (Strict Face Consistency). 臉部外觀必須以提供的參考圖片為準（嚴格保持臉部一致性）。 🔴\n\n生成一段 ${duration} 秒的電影級影片，基於以下分鏡：${prompt}。
                 
                 **PRIORITY 1: FACE (FROM REFERENCE)**
                 - 嚴格保持參考圖中的人物容貌。
@@ -763,6 +763,8 @@ const generateVeoVideo = async (apiKey, imageBase64, prompt, duration = 5, onSta
                 1. **服裝 & 環境**：必須完全遵循上方的分鏡描述。不要受參考圖背景影響。
                 2. **對白 & 語氣**：人物對話內容和氣氛必須符合文字描述。
                 3. **語言**：所有對白必須 100% 使用廣東話 (Cantonese)。
+
+                ${explicitVisuals} (Ensure these visual details are followed unless the scene description explicitly overrides them).
                 
                 CRITICAL: All dialogue in Cantonese. Face matches Photo. Clothes/Env match Text.`;
 
