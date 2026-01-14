@@ -67,13 +67,14 @@ document.addEventListener('DOMContentLoaded', () => {
             // Clear previous content
             previewContainer.innerHTML = '';
 
-            if (file.type.startsWith('image/')) {
+            const mimeType = file.type || '';
+            if (mimeType.startsWith('image/')) {
                 const img = document.createElement('img');
                 img.src = e.target.result;
                 img.alt = "預覽";
                 img.style.display = 'block';
                 previewContainer.appendChild(img);
-            } else if (file.type.startsWith('video/')) {
+            } else if (mimeType.startsWith('video/')) {
                 const video = document.createElement('video');
                 video.src = e.target.result;
                 video.controls = true;
@@ -82,10 +83,35 @@ document.addEventListener('DOMContentLoaded', () => {
                 video.style.width = '100%';
                 video.style.borderRadius = '8px';
                 previewContainer.appendChild(video);
+            } else {
+                // Fallback for missing or unknown MIME type
+                const fileName = file.name.toLowerCase();
+                if (fileName.endsWith('.png') || fileName.endsWith('.jpg') || fileName.endsWith('.jpeg') || fileName.endsWith('.webp')) {
+                    const img = document.createElement('img');
+                    img.src = e.target.result;
+                    img.alt = "預覽";
+                    img.style.display = 'block';
+                    previewContainer.appendChild(img);
+                } else if (fileName.endsWith('.mp4') || fileName.endsWith('.webm') || fileName.endsWith('.mov')) {
+                    const video = document.createElement('video');
+                    video.src = e.target.result;
+                    video.controls = true;
+                    video.muted = true;
+                    video.style.display = 'block';
+                    video.style.width = '100%';
+                    video.style.borderRadius = '8px';
+                    previewContainer.appendChild(video);
+                } else {
+                    alert('不支援的檔案類型，請使用圖片或影片檔案。');
+                    console.warn('不支援的檔案類型:', mimeType, file.name);
+                }
             }
             console.log(`${key} 預覽已更新`);
         };
-        reader.onerror = (err) => console.error("檔案讀取錯誤:", err);
+        reader.onerror = (err) => {
+            console.error("檔案讀取錯誤:", err);
+            alert("讀取檔案失敗。請重新選取。");
+        };
         reader.readAsDataURL(file);
     };
 
@@ -579,182 +605,183 @@ ${textToConvert}
                 : "";
 
             // CRITICAL: Reference image instructions come FIRST for maximum priority
-            finalPrompt = `🔴 CRITICAL: Facial appearance MUST be based on the provided reference image (Strict Face Consistency). 臉部外觀必須以提供的參考圖片為準（嚴格保持臉部一致性）。 🔴
+            if (referenceImageBase64) {
+                finalPrompt = `🔴 CRITICAL: Facial appearance MUST be based on the provided reference image (Strict Face Consistency). 臉部外觀必須以提供的參考圖片為準（嚴格保持臉部一致性）。 🔴
 
-                **PRIORITY 1: FACE & IDENTITY (FROM REFERENCE PHOTO):**
-                1. The person in the generated image MUST have the EXACT SAME FACE as the attached reference image.
-                2. PRESERVE 100% FACIAL IDENTITY (Eyes, Nose, Mouth, Bone Structure, Ethnicity).
-                3. Do NOT change the face.
+                    **PRIORITY 1: FACE & IDENTITY (FROM REFERENCE PHOTO):**
+                    1. The person in the generated image MUST have the EXACT SAME FACE as the attached reference image.
+                    2. PRESERVE 100% FACIAL IDENTITY (Eyes, Nose, Mouth, Bone Structure, Ethnicity).
+                    3. Do NOT change the face.
 
-                **PRIORITY 2: CLOTHING, ENVIRONMENT, CONTEXT (FROM TEXT DESCRIPTION):**
-                1. **CLOTHING**: The clothing MUST match the Scene Description below. IGNORE the reference photo's clothes.
-                2. **ENVIRONMENT**: The background and location MUST match the Scene Description.
-                3. **ATMOSPHERE**: The lighting and mood MUST match the Text/Visual Details.
-                
-                ${visualHeader}
+                    **PRIORITY 2: CLOTHING, ENVIRONMENT, CONTEXT (FROM TEXT DESCRIPTION):**
+                    1. **CLOTHING**: The clothing MUST match the Scene Description below. IGNORE the reference photo's clothes.
+                    2. **ENVIRONMENT**: The background and location MUST match the Scene Description.
+                    3. **ATMOSPHERE**: The lighting and mood MUST match the Text/Visual Details.
+                    
+                    ${visualHeader}
 
-                **SCENE DESCRIPTION (EXECUTE THIS FOR CLOTHING/ENV):**
-                Generate a photorealistic 8k image in ${aspectInstruction} format showing: ${prompt}
-                
-                **STYLE REQUIREMENTS:**
-                - Photorealistic photography style (真實攝影照片風格)
-                - Real human faces with skin texture
-                - Absolutely NO anime, illustration, cartoon, or painting styles
-                - Natural lighting and depth of field effects
-                
-                ⚠️ REMINDER: FACE = Reference Photo. CLOTHING/ENV = Text Description.`;
-        } else {
-            finalPrompt = `${visualHeader}生成一張真實照片級別的 8k 圖像，格式為 ${aspectInstruction}，內容：${prompt}。
-                
-                風格要求：
-                - 必須是真實攝影照片風格（photorealistic）
-                - 真實的人類面孔和皮膚紋理
-                - 絕對不要動漫、插畫、卡通或繪畫風格
-                - 使用真實的光影和景深效果`;
-    }
-
-    parts.push({ text: finalPrompt });
-
-    if (referenceImageBase64) {
-        const b64Data = referenceImageBase64.split(',')[1] || referenceImageBase64;
-        const mimeType = referenceImageBase64.includes('image/png') ? 'image/png' : 'image/jpeg';
-        parts.push({ inlineData: { mimeType: mimeType, data: b64Data } });
-    }
-
-    const body = { contents: [{ parts: parts }] };
-
-    try {
-        const response = await fetch(url, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(body)
-        });
-        const data = await response.json();
-
-        if (data.error) {
-            const msg = `[${modelId}] 錯誤: ${data.error.message || JSON.stringify(data.error)}`;
-            console.warn(msg);
-
-            // RETRY LOGIC for Quota (429)
-            if (data.error.code === 429 || msg.includes("Quota") || msg.includes("rate limit")) {
-                const waitMatch = msg.match(/retry in ([0-9.]+)(?:s|ms)/i);
-                let waitMs = 10000;
-                if (waitMatch && waitMatch[1]) {
-                    waitMs = Math.ceil(parseFloat(waitMatch[1]) * 1000) + 2000;
-                    console.warn(`[配額] API 請求等待。睡眠 ${waitMs / 1000}秒...`);
-                } else {
-                    console.warn(`[配額] 達到限制。睡眠 10秒...`);
-                }
-
-                const totalSeconds = Math.ceil(waitMs / 1000);
-                for (let s = totalSeconds; s > 0; s--) {
-                    if (onStatusUpdate) onStatusUpdate(`配額已達。${s}秒後重試...`);
-                    await sleep(1000);
-                }
-
-                return tryImgModel(idx);
+                    **SCENE DESCRIPTION (EXECUTE THIS FOR CLOTHING/ENV):**
+                    Generate a photorealistic 8k image in ${aspectInstruction} format showing: ${prompt}
+                    
+                    **STYLE REQUIREMENTS:**
+                    - Photorealistic photography style (真實攝影照片風格)
+                    - Real human faces with skin texture
+                    - Absolutely NO anime, illustration, cartoon, or painting styles
+                    - Natural lighting and depth of field effects
+                    
+                    ⚠️ REMINDER: FACE = Reference Photo. CLOTHING/ENV = Text Description.`;
+            } else {
+                finalPrompt = `${visualHeader}生成一張真實照片級別的 8k 圖像，格式為 ${aspectInstruction}，內容：${prompt}。
+                    
+                    風格要求：
+                    - 必須是真實攝影照片風格（photorealistic）
+                    - 真實的人類面孔和皮膚紋理
+                    - 絕對不要動漫、插畫、卡通或繪畫風格
+                    - 使用真實的光影和景深效果`;
             }
 
-            allErrors.push(msg);
-            return tryImgModel(idx + 1);
-        }
+            parts.push({ text: finalPrompt });
 
-        if (data.candidates && data.candidates[0].content && data.candidates[0].content.parts) {
-            for (const part of data.candidates[0].content.parts) {
-                if (part.inlineData && part.inlineData.mimeType.startsWith('image')) {
-                    if (!lockedImageModel) {
-                        lockedImageModel = modelId;
-                        console.log(`[圖像生成] ✅ 模型已鎖定: ${modelId}（將用於所有場景）`);
+            if (referenceImageBase64) {
+                const b64Data = referenceImageBase64.split(',')[1] || referenceImageBase64;
+                const mimeType = referenceImageBase64.includes('image/png') ? 'image/png' : 'image/jpeg';
+                parts.push({ inlineData: { mimeType: mimeType, data: b64Data } });
+            }
+
+            const body = { contents: [{ parts: parts }] };
+
+            try {
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(body)
+                });
+                const data = await response.json();
+
+                if (data.error) {
+                    const msg = `[${modelId}] 錯誤: ${data.error.message || JSON.stringify(data.error)}`;
+                    console.warn(msg);
+
+                    // RETRY LOGIC for Quota (429)
+                    if (data.error.code === 429 || msg.includes("Quota") || msg.includes("rate limit")) {
+                        const waitMatch = msg.match(/retry in ([0-9.]+)(?:s|ms)/i);
+                        let waitMs = 10000;
+                        if (waitMatch && waitMatch[1]) {
+                            waitMs = Math.ceil(parseFloat(waitMatch[1]) * 1000) + 2000;
+                            console.warn(`[配額] API 請求等待。睡眠 ${waitMs / 1000}秒...`);
+                        } else {
+                            console.warn(`[配額] 達到限制。睡眠 10秒...`);
+                        }
+
+                        const totalSeconds = Math.ceil(waitMs / 1000);
+                        for (let s = totalSeconds; s > 0; s--) {
+                            if (onStatusUpdate) onStatusUpdate(`配額已達。${s}秒後重試...`);
+                            await sleep(1000);
+                        }
+
+                        return tryImgModel(idx);
                     }
-                    return `data:${part.inlineData.mimeType};base64,${part.inlineData.data}`;
+
+                    allErrors.push(msg);
+                    return tryImgModel(idx + 1);
                 }
+
+                if (data.candidates && data.candidates[0].content && data.candidates[0].content.parts) {
+                    for (const part of data.candidates[0].content.parts) {
+                        if (part.inlineData && part.inlineData.mimeType.startsWith('image')) {
+                            if (!lockedImageModel) {
+                                lockedImageModel = modelId;
+                                console.log(`[圖像生成] ✅ 模型已鎖定: ${modelId}（將用於所有場景）`);
+                            }
+                            return `data:${part.inlineData.mimeType};base64,${part.inlineData.data}`;
+                        }
+                    }
+                }
+
+                if (data.predictions && data.predictions[0] && data.predictions[0].bytesBase64Encoded) {
+                    return `data:image/png;base64,${data.predictions[0].bytesBase64Encoded}`;
+                }
+
+                allErrors.push(`[${modelId}] 成功但響應中沒有圖像數據。`);
+                return tryImgModel(idx + 1);
+
+            } catch (e) {
+                const isNetworkError = e.message.includes("fetch") || e.message.includes("Network");
+
+                if (isNetworkError && (!e.retryCount || e.retryCount < 3)) {
+                    const retryCount = (e.retryCount || 0) + 1;
+                    const waitTime = Math.pow(2, retryCount) * 1000;
+
+                    console.warn(`[${modelId}] 網絡錯誤。重試 ${retryCount}/3 在 ${waitTime / 1000}秒...`);
+                    if (onStatusUpdate) onStatusUpdate(`網絡問題。${waitTime / 1000}秒後重試...`);
+
+                    await sleep(waitTime);
+
+                    e.retryCount = retryCount;
+                    return tryImgModel(idx);
+                }
+
+                allErrors.push(`[${modelId}] 網絡錯誤: ${e.message}`);
+                return tryImgModel(idx + 1);
             }
-        }
+        };
 
-        if (data.predictions && data.predictions[0] && data.predictions[0].bytesBase64Encoded) {
-            return `data:image/png;base64,${data.predictions[0].bytesBase64Encoded}`;
-        }
-
-        allErrors.push(`[${modelId}] 成功但響應中沒有圖像數據。`);
-        return tryImgModel(idx + 1);
-
-    } catch (e) {
-        const isNetworkError = e.message.includes("fetch") || e.message.includes("Network");
-
-        if (isNetworkError && (!e.retryCount || e.retryCount < 3)) {
-            const retryCount = (e.retryCount || 0) + 1;
-            const waitTime = Math.pow(2, retryCount) * 1000;
-
-            console.warn(`[${modelId}] 網絡錯誤。重試 ${retryCount}/3 在 ${waitTime / 1000}秒...`);
-            if (onStatusUpdate) onStatusUpdate(`網絡問題。${waitTime / 1000}秒後重試...`);
-
-            await sleep(waitTime);
-
-            e.retryCount = retryCount;
-            return tryImgModel(idx);
-        }
-
-        allErrors.push(`[${modelId}] 網絡錯誤: ${e.message}`);
-        return tryImgModel(idx + 1);
-    }
-};
-
-return tryImgModel(0);
+        return tryImgModel(0);
     };
 
-// Helper: Generate Video with Veo 3.1 API
-const generateVeoVideo = async (apiKey, imageBase64, prompt, duration = 5, onStatusUpdate = null, visualDetails = '') => {
-    const sleep = (ms) => new Promise(r => setTimeout(r, ms));
-    const errors = [];
+    // Helper: Generate Video with Veo 3.1 API
+    const generateVeoVideo = async (apiKey, imageBase64, prompt, duration = 5, onStatusUpdate = null, visualDetails = '') => {
+        const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+        const errors = [];
 
-    const veoModels = [
-        "veo-3.1-generate-preview",
-        "veo-3.0-generate-001",
-        "veo-3.0-fast-generate-001"
-    ];
+        const veoModels = [
+            "veo-3.1-generate-preview",
+            "veo-3.0-generate-001",
+            "veo-3.0-fast-generate-001"
+        ];
 
-    for (const modelId of veoModels) {
-        try {
-            console.log(`[Veo] 嘗試 ${modelId} 通過 predictLongRunning...`);
-            const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelId}:predictLongRunning?key=${apiKey}`;
+        for (const modelId of veoModels) {
+            try {
+                console.log(`[Veo] 嘗試 ${modelId} 通過 predictLongRunning...`);
+                const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelId}:predictLongRunning?key=${apiKey}`;
 
-            const imageList = Array.isArray(imageBase64) ? imageBase64 : [imageBase64];
-            const parts = [];
+                const imageList = Array.isArray(imageBase64) ? imageBase64 : [imageBase64];
+                const parts = [];
 
-            for (const img of imageList) {
-                if (!img) continue;
-                let b64Data;
-                let mimeType;
-                if (img.startsWith('data:')) {
-                    b64Data = img.split(',')[1];
-                    mimeType = img.split(';')[0].split(':')[1];
-                } else if (img.startsWith('blob:')) {
-                    try {
-                        const blobRes = await fetch(img);
-                        const blob = await blobRes.blob();
-                        b64Data = await new Promise((resolve, reject) => {
-                            const reader = new FileReader();
-                            reader.onloadend = () => resolve(reader.result.split(',')[1]);
-                            reader.onerror = reject;
-                            reader.readAsDataURL(blob);
-                        });
-                        mimeType = blob.type;
-                    } catch (e) { continue; }
-                } else {
-                    b64Data = img;
-                    mimeType = 'image/jpeg';
+                for (const img of imageList) {
+                    if (!img) continue;
+                    let b64Data;
+                    let mimeType;
+                    if (img.startsWith('data:')) {
+                        b64Data = img.split(',')[1];
+                        mimeType = img.split(';')[0].split(':')[1];
+                    } else if (img.startsWith('blob:')) {
+                        try {
+                            const blobRes = await fetch(img);
+                            const blob = await blobRes.blob();
+                            b64Data = await new Promise((resolve, reject) => {
+                                const reader = new FileReader();
+                                reader.onloadend = () => resolve(reader.result.split(',')[1]);
+                                reader.onerror = reject;
+                                reader.readAsDataURL(blob);
+                            });
+                            mimeType = blob.type;
+                        } catch (e) { continue; }
+                    } else {
+                        b64Data = img;
+                        mimeType = 'image/jpeg';
+                    }
+                    parts.push({ inlineData: { mimeType, data: b64Data } });
                 }
-                parts.push({ inlineData: { mimeType, data: b64Data } });
-            }
 
-            // Enhanced prompt for Cantonese audio and clothing consistency
-            // CRITICAL SHIFT: Visual details moved to START for better adherence
-            let explicitVisuals = "";
-            if (visualDetails && visualDetails.trim()) {
-                explicitVisuals = `視覺一致性要求 (VISUAL LOOK LOCK)：${visualDetails.trim()}\n\n`;
-            }
+                // Enhanced prompt for Cantonese audio and clothing consistency
+                // CRITICAL SHIFT: Visual details moved to START for better adherence
+                let explicitVisuals = "";
+                if (visualDetails && visualDetails.trim()) {
+                    explicitVisuals = `視覺一致性要求 (VISUAL LOOK LOCK)：${visualDetails.trim()}\n\n`;
+                }
 
-            const enhancedPrompt = `🔴 CRITICAL: Facial appearance MUST be based on the provided reference image (Strict Face Consistency). 臉部外觀必須以提供的參考圖片為準（嚴格保持臉部一致性）。 🔴\n\n生成一段 ${duration} 秒的電影級影片，基於以下分鏡：${prompt}。
+                const enhancedPrompt = `🔴 CRITICAL: Facial appearance MUST be based on the provided reference image (Strict Face Consistency). 臉部外觀必須以提供的參考圖片為準（嚴格保持臉部一致性）。 🔴\n\n生成一段 ${duration} 秒的電影級影片，基於以下分鏡：${prompt}。
                 
                 **PRIORITY 1: FACE (FROM REFERENCE)**
                 - 嚴格保持參考圖中的人物容貌。
@@ -768,253 +795,253 @@ const generateVeoVideo = async (apiKey, imageBase64, prompt, duration = 5, onSta
                 
                 CRITICAL: All dialogue in Cantonese. Face matches Photo. Clothes/Env match Text.`;
 
-            // Log the complete prompt for debugging
-            console.log(`[Veo] 完整提示詞 (${modelId}):\n`, enhancedPrompt);
-            if (onStatusUpdate) {
-                onStatusUpdate(`準備提示詞: ${prompt.substring(0, 50)}...`);
-            }
-
-            parts.unshift({ text: enhancedPrompt });
-
-            const requestPayload = {
-                instances: [{
-                    prompt: enhancedPrompt,
-                    image: (parts[1] && parts[1].inlineData && parts[1].inlineData.mimeType.startsWith('image/')) ? {
-                        bytesBase64Encoded: parts[1].inlineData.data,
-                        mimeType: parts[1].inlineData.mimeType
-                    } : undefined,
-                    video: (parts[1] && parts[1].inlineData && parts[1].inlineData.mimeType.startsWith('video/')) ? {
-                        bytesBase64Encoded: parts[1].inlineData.data,
-                        mimeType: parts[1].inlineData.mimeType
-                    } : undefined
-                }]
-            };
-
-            if (onStatusUpdate) onStatusUpdate(`正在請求 ${modelId}...`);
-            const response = await fetch(url, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(requestPayload)
-            });
-
-            const data = await response.json();
-
-            if (!response.ok || data.error) {
-                const msg = data.error ? data.error.message : response.statusText;
-                console.warn(`[${modelId}] 初始化錯誤: ${msg}`);
-                errors.push(`[${modelId}] ${msg}`);
-                continue;
-            }
-
-            if (!data.name) {
-                errors.push(`[${modelId}] 缺少操作名稱。`);
-                continue;
-            }
-
-            const opName = data.name;
-            console.log(`[Veo] 操作已開始: ${opName}`);
-
-            // --- POLLING ---
-            let pollCount = 0;
-            const maxPolls = 180;
-            while (pollCount < maxPolls) {
-                pollCount++;
-                if (onStatusUpdate) onStatusUpdate(`輪詢 ${modelId} (${pollCount * 5}秒)...`);
-
-                const pollUrl = `https://generativelanguage.googleapis.com/v1beta/${opName}?key=${apiKey}`;
-                const pollRes = await fetch(pollUrl);
-                const pollData = await pollRes.json();
-
-                if (pollData.done) {
-                    if (pollData.error) {
-                        throw new Error(`操作失敗: ${pollData.error.message}`);
-                    }
-
-                    const res = pollData.response || {};
-                    console.log(`[Veo] 操作進度: 完成。響應結構:`, res);
-
-                    const mainRes = res.generateVideoResponse || res;
-                    const videoCandidates = [];
-
-                    if (mainRes.video) videoCandidates.push(mainRes.video);
-                    if (Array.isArray(mainRes.videos)) {
-                        mainRes.videos.forEach(v => videoCandidates.push(v.video || v));
-                    }
-                    if (Array.isArray(mainRes.generatedVideos)) {
-                        mainRes.generatedVideos.forEach(v => videoCandidates.push(v.video || v));
-                    }
-                    if (Array.isArray(mainRes.generatedSamples)) {
-                        mainRes.generatedSamples.forEach(s => {
-                            if (s.video) videoCandidates.push(s.video);
-                        });
-                    }
-
-                    for (const v of videoCandidates) {
-                        let videoData = null;
-                        if (v.bytesBase64Encoded) {
-                            videoData = `data:video/mp4;base64,${v.bytesBase64Encoded}`;
-                        } else if (v.uri) {
-                            videoData = v.uri.includes('?') ? `${v.uri}&key=${apiKey}` : `${v.uri}?key=${apiKey}`;
-                        }
-
-                        if (videoData) {
-                            console.log(`[Veo] ✅ 影片已定位！模型: ${modelId}`);
-                            return { videoBase64: videoData, model: modelId };
-                        }
-                    }
-
-                    if (mainRes.candidates && mainRes.candidates[0].content && mainRes.candidates[0].content.parts) {
-                        const part = mainRes.candidates[0].content.parts.find(p => p.inlineData && p.inlineData.mimeType.startsWith('video'));
-                        if (part) {
-                            return {
-                                videoBase64: `data:${part.inlineData.mimeType};base64,${part.inlineData.data}`,
-                                model: modelId
-                            };
-                        }
-                    }
-
-                    // Check for RAI (Responsible AI) safety filter blocking
-                    if (mainRes.raiMediaFilteredCount && mainRes.raiMediaFilteredCount > 0) {
-                        const reasons = mainRes.raiMediaFilteredReasons || [];
-                        const reasonText = reasons.join(' ');
-                        console.error(`[${modelId}] 安全過濾器阻止: ${reasonText}`);
-                        throw new Error(`內容安全過濾器觸發: ${reasonText}\n\n建議：請簡化場景描述，移除對白，只描述視覺動作。例如："女主角微笑看著男主角" 而不是 "女主角講：你好靚仔！"`);
-                    }
-
-                    console.error(`[${modelId}] 無法提取影片。結構:`, JSON.stringify(res));
-                    throw new Error(`成功狀態，但響應中未找到影片數據。已檢查: video, videos, generatedVideos, generatedSamples, candidates。`);
+                // Log the complete prompt for debugging
+                console.log(`[Veo] 完整提示詞 (${modelId}):\n`, enhancedPrompt);
+                if (onStatusUpdate) {
+                    onStatusUpdate(`準備提示詞: ${prompt.substring(0, 50)}...`);
                 }
 
-                await sleep(5000);
+                parts.unshift({ text: enhancedPrompt });
+
+                const requestPayload = {
+                    instances: [{
+                        prompt: enhancedPrompt,
+                        image: (parts[1] && parts[1].inlineData && parts[1].inlineData.mimeType.startsWith('image/')) ? {
+                            bytesBase64Encoded: parts[1].inlineData.data,
+                            mimeType: parts[1].inlineData.mimeType
+                        } : undefined,
+                        video: (parts[1] && parts[1].inlineData && parts[1].inlineData.mimeType.startsWith('video/')) ? {
+                            bytesBase64Encoded: parts[1].inlineData.data,
+                            mimeType: parts[1].inlineData.mimeType
+                        } : undefined
+                    }]
+                };
+
+                if (onStatusUpdate) onStatusUpdate(`正在請求 ${modelId}...`);
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(requestPayload)
+                });
+
+                const data = await response.json();
+
+                if (!response.ok || data.error) {
+                    const msg = data.error ? data.error.message : response.statusText;
+                    console.warn(`[${modelId}] 初始化錯誤: ${msg}`);
+                    errors.push(`[${modelId}] ${msg}`);
+                    continue;
+                }
+
+                if (!data.name) {
+                    errors.push(`[${modelId}] 缺少操作名稱。`);
+                    continue;
+                }
+
+                const opName = data.name;
+                console.log(`[Veo] 操作已開始: ${opName}`);
+
+                // --- POLLING ---
+                let pollCount = 0;
+                const maxPolls = 180;
+                while (pollCount < maxPolls) {
+                    pollCount++;
+                    if (onStatusUpdate) onStatusUpdate(`輪詢 ${modelId} (${pollCount * 5}秒)...`);
+
+                    const pollUrl = `https://generativelanguage.googleapis.com/v1beta/${opName}?key=${apiKey}`;
+                    const pollRes = await fetch(pollUrl);
+                    const pollData = await pollRes.json();
+
+                    if (pollData.done) {
+                        if (pollData.error) {
+                            throw new Error(`操作失敗: ${pollData.error.message}`);
+                        }
+
+                        const res = pollData.response || {};
+                        console.log(`[Veo] 操作進度: 完成。響應結構:`, res);
+
+                        const mainRes = res.generateVideoResponse || res;
+                        const videoCandidates = [];
+
+                        if (mainRes.video) videoCandidates.push(mainRes.video);
+                        if (Array.isArray(mainRes.videos)) {
+                            mainRes.videos.forEach(v => videoCandidates.push(v.video || v));
+                        }
+                        if (Array.isArray(mainRes.generatedVideos)) {
+                            mainRes.generatedVideos.forEach(v => videoCandidates.push(v.video || v));
+                        }
+                        if (Array.isArray(mainRes.generatedSamples)) {
+                            mainRes.generatedSamples.forEach(s => {
+                                if (s.video) videoCandidates.push(s.video);
+                            });
+                        }
+
+                        for (const v of videoCandidates) {
+                            let videoData = null;
+                            if (v.bytesBase64Encoded) {
+                                videoData = `data:video/mp4;base64,${v.bytesBase64Encoded}`;
+                            } else if (v.uri) {
+                                videoData = v.uri.includes('?') ? `${v.uri}&key=${apiKey}` : `${v.uri}?key=${apiKey}`;
+                            }
+
+                            if (videoData) {
+                                console.log(`[Veo] ✅ 影片已定位！模型: ${modelId}`);
+                                return { videoBase64: videoData, model: modelId };
+                            }
+                        }
+
+                        if (mainRes.candidates && mainRes.candidates[0].content && mainRes.candidates[0].content.parts) {
+                            const part = mainRes.candidates[0].content.parts.find(p => p.inlineData && p.inlineData.mimeType.startsWith('video'));
+                            if (part) {
+                                return {
+                                    videoBase64: `data:${part.inlineData.mimeType};base64,${part.inlineData.data}`,
+                                    model: modelId
+                                };
+                            }
+                        }
+
+                        // Check for RAI (Responsible AI) safety filter blocking
+                        if (mainRes.raiMediaFilteredCount && mainRes.raiMediaFilteredCount > 0) {
+                            const reasons = mainRes.raiMediaFilteredReasons || [];
+                            const reasonText = reasons.join(' ');
+                            console.error(`[${modelId}] 安全過濾器阻止: ${reasonText}`);
+                            throw new Error(`內容安全過濾器觸發: ${reasonText}\n\n建議：請簡化場景描述，移除對白，只描述視覺動作。例如："女主角微笑看著男主角" 而不是 "女主角講：你好靚仔！"`);
+                        }
+
+                        console.error(`[${modelId}] 無法提取影片。結構:`, JSON.stringify(res));
+                        throw new Error(`成功狀態，但響應中未找到影片數據。已檢查: video, videos, generatedVideos, generatedSamples, candidates。`);
+                    }
+
+                    await sleep(5000);
+                }
+                throw new Error("輪詢超時。");
+
+            } catch (e) {
+                console.warn(`[${modelId}] 錯誤:`, e.message);
+                errors.push(`[${modelId}] ${e.message}`);
             }
-            throw new Error("輪詢超時。");
-
-        } catch (e) {
-            console.warn(`[${modelId}] 錯誤:`, e.message);
-            errors.push(`[${modelId}] ${e.message}`);
-        }
-    }
-
-    throw new Error("Veo3 生成失敗。診斷:\n" + errors.join("\n"));
-};
-
-// 3. FFmpeg-Based Video Stitcher
-const stitchVideos = async (scenes, durationPerSceneMs = 5000) => {
-    addProductionLog(`開始 FFmpeg 影片組裝: ${scenes.length} 個場景。`, 'info');
-
-    const SERVER_URL = 'http://localhost:3000';
-
-    try {
-        const videoScenes = scenes.filter(s => s.veoVideo);
-
-        if (videoScenes.length === 0) {
-            throw new Error('未找到影片片段進行合併。請啟用 Veo 3.1 影片生成。');
         }
 
-        addProductionLog(`找到 ${videoScenes.length} 個影片片段進行合併。`, 'info');
+        throw new Error("Veo3 生成失敗。診斷:\n" + errors.join("\n"));
+    };
 
-        // Step 1: Upload all video blobs to the server
-        const uploadedPaths = [];
-        for (let i = 0; i < videoScenes.length; i++) {
-            const scene = videoScenes[i];
-            addProductionLog(`正在上傳場景 ${i + 1}/${videoScenes.length} 到伺服器...`, 'info');
+    // 3. FFmpeg-Based Video Stitcher
+    const stitchVideos = async (scenes, durationPerSceneMs = 5000) => {
+        addProductionLog(`開始 FFmpeg 影片組裝: ${scenes.length} 個場景。`, 'info');
 
-            const response = await fetch(scene.veoVideo);
-            const blob = await response.blob();
+        const SERVER_URL = window.location.origin;
 
-            const formData = new FormData();
-            formData.append('video', blob, `scene-${i + 1}.mp4`);
+        try {
+            const videoScenes = scenes.filter(s => s.veoVideo);
 
-            const uploadResponse = await fetch(`${SERVER_URL}/api/save-video`, {
+            if (videoScenes.length === 0) {
+                throw new Error('未找到影片片段進行合併。請啟用 Veo 3.1 影片生成。');
+            }
+
+            addProductionLog(`找到 ${videoScenes.length} 個影片片段進行合併。`, 'info');
+
+            // Step 1: Upload all video blobs to the server
+            const uploadedPaths = [];
+            for (let i = 0; i < videoScenes.length; i++) {
+                const scene = videoScenes[i];
+                addProductionLog(`正在上傳場景 ${i + 1}/${videoScenes.length} 到伺服器...`, 'info');
+
+                const response = await fetch(scene.veoVideo);
+                const blob = await response.blob();
+
+                const formData = new FormData();
+                formData.append('video', blob, `scene-${i + 1}.mp4`);
+
+                const uploadResponse = await fetch(`${SERVER_URL}/api/save-video`, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (!uploadResponse.ok) {
+                    throw new Error(`上傳場景 ${i + 1} 失敗: ${uploadResponse.statusText}`);
+                }
+
+                const uploadResult = await uploadResponse.json();
+                uploadedPaths.push(uploadResult.filePath);
+                addProductionLog(`場景 ${i + 1} 已上傳: ${uploadResult.filename}`, 'success');
+            }
+
+            // Step 2: Request FFmpeg concatenation
+            addProductionLog('正在請求 FFmpeg 合併...', 'info');
+            const concatResponse = await fetch(`${SERVER_URL}/api/concat-videos`, {
                 method: 'POST',
-                body: formData
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ videoPaths: uploadedPaths })
             });
 
-            if (!uploadResponse.ok) {
-                throw new Error(`上傳場景 ${i + 1} 失敗: ${uploadResponse.statusText}`);
+            if (!concatResponse.ok) {
+                const errorData = await concatResponse.json();
+                throw new Error(`FFmpeg 合併失敗: ${errorData.error || concatResponse.statusText}`);
             }
 
-            const uploadResult = await uploadResponse.json();
-            uploadedPaths.push(uploadResult.filePath);
-            addProductionLog(`場景 ${i + 1} 已上傳: ${uploadResult.filename}`, 'success');
+            const concatResult = await concatResponse.json();
+            addProductionLog(`FFmpeg 成功: ${concatResult.message}`, 'success');
+
+            const finalVideoUrl = `${SERVER_URL}/output/${concatResult.filename}`;
+            addProductionLog(`最終影片準備就緒: ${concatResult.filename}`, 'success');
+
+            return finalVideoUrl;
+
+        } catch (error) {
+            addProductionLog(`FFmpeg 拼接錯誤: ${error.message}`, 'error');
+            console.error('FFmpeg 拼接失敗:', error);
+            throw error;
+        }
+    };
+
+    // --- Main Workflow Trigger ---
+    btnGenVideo.addEventListener('click', async () => {
+        // Collect user scenes
+        const userScenes = collectUserScenes();
+
+        if (userScenes.length === 0) {
+            alert('請至少填寫場景 1。');
+            return;
         }
 
-        // Step 2: Request FFmpeg concatenation
-        addProductionLog('正在請求 FFmpeg 合併...', 'info');
-        const concatResponse = await fetch(`${SERVER_URL}/api/concat-videos`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ videoPaths: uploadedPaths })
-        });
-
-        if (!concatResponse.ok) {
-            const errorData = await concatResponse.json();
-            throw new Error(`FFmpeg 合併失敗: ${errorData.error || concatResponse.statusText}`);
+        if (!state.femaleImg && !state.maleImg) {
+            alert('請至少上傳一張角色照片。');
+            return;
         }
 
-        const concatResult = await concatResponse.json();
-        addProductionLog(`FFmpeg 成功: ${concatResult.message}`, 'success');
+        const originalBtnText = btnGenVideo.innerHTML;
+        const visualDetails = document.getElementById('visual-details').value;
+        const aspectRatio = document.getElementById('aspect-ratio').value;
 
-        const finalVideoUrl = `${SERVER_URL}/output/${concatResult.filename}`;
-        addProductionLog(`最終影片準備就緒: ${concatResult.filename}`, 'success');
+        // Detect Character Mode
+        const hasFemale = !!state.femaleImg;
+        const hasMale = !!state.maleImg;
+        const characterMode = (hasFemale && hasMale) ? "dual" : "solo";
+        console.log(`[角色模式] ${characterMode.toUpperCase()} - 女主角: ${hasFemale}, 男主角: ${hasMale}`);
 
-        return finalVideoUrl;
+        btnGenVideo.disabled = true;
+        btnGenVideo.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> 正在初始化...`;
+        addProductionLog("正在初始化影片生成流程...", 'info');
 
-    } catch (error) {
-        addProductionLog(`FFmpeg 拼接錯誤: ${error.message}`, 'error');
-        console.error('FFmpeg 拼接失敗:', error);
-        throw error;
-    }
-};
+        const apiKey = document.getElementById('api-key').value.trim();
 
-// --- Main Workflow Trigger ---
-btnGenVideo.addEventListener('click', async () => {
-    // Collect user scenes
-    const userScenes = collectUserScenes();
+        // Display screenplay
+        setTimeout(async () => {
+            const screenplay = userScenes;
+            console.log("使用用戶提供的場景:", screenplay);
+            addProductionLog(`用戶提供的場景總數: ${screenplay.length}`, 'success');
 
-    if (userScenes.length === 0) {
-        alert('請至少填寫場景 1。');
-        return;
-    }
+            btnGenVideo.innerHTML = `<i class="fa-solid fa-video"></i> 正在拍攝 ${screenplay.length} 個電影場景...`;
+            imageGallery.innerHTML = '';
 
-    if (!state.femaleImg && !state.maleImg) {
-        alert('請至少上傳一張角色照片。');
-        return;
-    }
+            const scriptBox = document.createElement('div');
+            scriptBox.className = 'glass-card';
+            scriptBox.style.marginBottom = '20px';
+            scriptBox.style.padding = '15px';
+            scriptBox.style.textAlign = 'left';
+            scriptBox.style.gridColumn = '1 / -1';
 
-    const originalBtnText = btnGenVideo.innerHTML;
-    const visualDetails = document.getElementById('visual-details').value;
-    const aspectRatio = document.getElementById('aspect-ratio').value;
-
-    // Detect Character Mode
-    const hasFemale = !!state.femaleImg;
-    const hasMale = !!state.maleImg;
-    const characterMode = (hasFemale && hasMale) ? "dual" : "solo";
-    console.log(`[角色模式] ${characterMode.toUpperCase()} - 女主角: ${hasFemale}, 男主角: ${hasMale}`);
-
-    btnGenVideo.disabled = true;
-    btnGenVideo.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> 正在初始化...`;
-    addProductionLog("正在初始化影片生成流程...", 'info');
-
-    const apiKey = document.getElementById('api-key').value.trim();
-
-    // Display screenplay
-    setTimeout(async () => {
-        const screenplay = userScenes;
-        console.log("使用用戶提供的場景:", screenplay);
-        addProductionLog(`用戶提供的場景總數: ${screenplay.length}`, 'success');
-
-        btnGenVideo.innerHTML = `<i class="fa-solid fa-video"></i> 正在拍攝 ${screenplay.length} 個電影場景...`;
-        imageGallery.innerHTML = '';
-
-        const scriptBox = document.createElement('div');
-        scriptBox.className = 'glass-card';
-        scriptBox.style.marginBottom = '20px';
-        scriptBox.style.padding = '15px';
-        scriptBox.style.textAlign = 'left';
-        scriptBox.style.gridColumn = '1 / -1';
-
-        scriptBox.innerHTML = `
+            scriptBox.innerHTML = `
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
                 <h3 style="margin:0;"><i class="fa-solid fa-scroll"></i> 場景列表</h3>
                 <span class="badge" style="background:#4CAF50; padding:4px 8px; border-radius:4px; font-size:0.8em; color:white;">用戶自訂</span>
@@ -1027,37 +1054,37 @@ btnGenVideo.addEventListener('click', async () => {
                     </li>`).join('')}
                 </ul>
             </div>`;
-        imageGallery.appendChild(scriptBox);
+            imageGallery.appendChild(scriptBox);
 
-        const statusMsg = document.createElement('div');
-        statusMsg.className = 'placeholder-text';
-        statusMsg.innerHTML = `<p><i class="fa-solid fa-clapperboard"></i> <strong>製作狀態:</strong> 場景已鎖定。正在拍攝...</p>`;
-        imageGallery.appendChild(statusMsg);
+            const statusMsg = document.createElement('div');
+            statusMsg.className = 'placeholder-text';
+            statusMsg.innerHTML = `<p><i class="fa-solid fa-clapperboard"></i> <strong>製作狀態:</strong> 場景已鎖定。正在拍攝...</p>`;
+            imageGallery.appendChild(statusMsg);
 
-        const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
-        const scenes = [];
+            const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+            const scenes = [];
 
-        // Helper to update the UI gallery
-        const renderGalleryItem = (sceneResult, idx) => {
-            const div = document.createElement('div');
-            div.className = 'gallery-item glass-card';
+            // Helper to update the UI gallery
+            const renderGalleryItem = (sceneResult, idx) => {
+                const div = document.createElement('div');
+                div.className = 'gallery-item glass-card';
 
-            const isAI = sceneResult.type.includes('AI') || sceneResult.type.includes('Veo');
-            const isError = sceneResult.type.startsWith('錯誤');
-            let badgeColor = isAI ? '#4CAF50' : '#F44336';
+                const isAI = sceneResult.type.includes('AI') || sceneResult.type.includes('Veo');
+                const isError = sceneResult.type.startsWith('錯誤');
+                let badgeColor = isAI ? '#4CAF50' : '#F44336';
 
-            let mediaContent = '';
-            if (isError) {
-                mediaContent = `<div style="width:100%; height:150px; background:#330000; display:flex; align-items:center; justify-content:center; color:#ffcccc; font-size:0.8em; padding:10px; text-align:center;">
+                let mediaContent = '';
+                if (isError) {
+                    mediaContent = `<div style="width:100%; height:150px; background:#330000; display:flex; align-items:center; justify-content:center; color:#ffcccc; font-size:0.8em; padding:10px; text-align:center;">
                         <i class="fa-solid fa-triangle-exclamation"></i> ${sceneResult.type}
                     </div>`;
-            } else if (sceneResult.veoVideo) {
-                mediaContent = `<video src="${sceneResult.veoVideo}" controls loop muted style="width:100%; height:150px; object-fit:cover;"></video>`;
-            } else {
-                mediaContent = `<img src="${sceneResult.url}" style="width:100%; height:150px; object-fit:cover;">`;
-            }
+                } else if (sceneResult.veoVideo) {
+                    mediaContent = `<video src="${sceneResult.veoVideo}" controls loop muted style="width:100%; height:150px; object-fit:cover;"></video>`;
+                } else {
+                    mediaContent = `<img src="${sceneResult.url}" style="width:100%; height:150px; object-fit:cover;">`;
+                }
 
-            div.innerHTML = `
+                div.innerHTML = `
                     <div style="overflow:hidden; border-radius:8px; margin-bottom:0.2rem;">
                         ${mediaContent}
                     </div>
@@ -1079,148 +1106,148 @@ btnGenVideo.addEventListener('click', async () => {
                         ` : ''}
                     </div>
                 `;
-            imageGallery.appendChild(div);
-        };
+                imageGallery.appendChild(div);
+            };
 
-        for (let i = 0; i < screenplay.length; i++) {
-            const scene = screenplay[i];
-            const sceneNum = i + 1;
+            for (let i = 0; i < screenplay.length; i++) {
+                const scene = screenplay[i];
+                const sceneNum = i + 1;
 
-            btnGenVideo.innerHTML = `<i class="fa-solid fa-paintbrush"></i> 正在生成場景 ${sceneNum}/${screenplay.length}...`;
-            addProductionLog(`正在生成場景 ${sceneNum}/${screenplay.length}: "${scene.description}"`, 'info');
+                btnGenVideo.innerHTML = `<i class="fa-solid fa-paintbrush"></i> 正在生成場景 ${sceneNum}/${screenplay.length}...`;
+                addProductionLog(`正在生成場景 ${sceneNum}/${screenplay.length}: "${scene.description}"`, 'info');
 
-            let sceneResult = { ...scene, url: '', veoVideo: null, type: '初始化' };
+                let sceneResult = { ...scene, url: '', veoVideo: null, type: '初始化' };
+
+                try {
+                    const promptToUse = scene.image_prompt_en || scene.description;
+
+                    let refImage = state.femaleImg;
+                    if (scene.cameraMove.includes("男角") && state.maleImg) {
+                        refImage = state.maleImg;
+                    } else if (scene.cameraMove.includes("Male") && state.maleImg) {
+                        refImage = state.maleImg;
+                    }
+
+                    // 1. Generate Static Reference Image
+                    addProductionLog(`AI 圖像 [S${sceneNum}]: 正在生成基礎圖像...`, 'info');
+                    const aiUrl = await generateAIImage(apiKey, promptToUse, refImage, (statusMsg) => {
+                        btnGenVideo.innerHTML = `<i class="fa-solid fa-hourglass-half"></i> 場景 ${sceneNum}: ${statusMsg}`;
+                        addProductionLog(`AI 圖像 [S${sceneNum}]: ${statusMsg}`, 'info');
+                    }, aspectRatio, visualDetails);
+
+                    if (aiUrl) {
+                        sceneResult.url = aiUrl;
+                        sceneResult.type = lockedImageModel || 'AI 生成器';
+                        addProductionLog(`AI 圖像 [S${sceneNum}]: ✅ 基礎圖像已由 ${sceneResult.type} 生成。`, 'success');
+
+                        // 2. Generate Veo3 Video Clip if enabled
+                        const veoEnabled = document.getElementById('enable-veo').checked;
+                        if (veoEnabled) {
+                            try {
+                                addProductionLog(`正在用 Veo 3.1 拍攝場景 ${sceneNum}...`, 'info');
+                                btnGenVideo.innerHTML = `<i class="fa-solid fa-film"></i> Veo3: 正在生成片段 ${i + 1}/${screenplay.length}... (請稍候)`;
+
+                                const targetDuration = 8; // Fixed 8 seconds per scene
+                                const veoResult = await generateVeoVideo(apiKey, aiUrl, promptToUse, targetDuration, (status) => {
+                                    btnGenVideo.innerHTML = `<i class="fa-solid fa-film"></i> Veo3: ${status} (場景 ${i + 1})`;
+                                    addProductionLog(`Veo3 [S${sceneNum}]: ${status}`, 'info');
+                                }, visualDetails);
+
+                                if (veoResult && veoResult.videoBase64) {
+                                    sceneResult.veoVideo = veoResult.videoBase64;
+                                    sceneResult.type = `Veo 3.1 (電影)`;
+                                    addProductionLog(`Veo3 [S${sceneNum}]: ✅ 影片成功捕獲！`, 'success');
+                                }
+                            } catch (veoErr) {
+                                addProductionLog(`Veo3 [S${sceneNum}]: ❌ 失敗 - ${veoErr.message}`, 'error');
+                                console.warn(`場景 ${sceneNum} 的 Veo 失敗:`, veoErr.message);
+                            }
+                        }
+                    } else {
+                        throw new Error("AI 圖像生成失敗。");
+                    }
+                } catch (e) {
+                    addProductionLog(`場景 ${sceneNum} 製作錯誤: ${e.message}`, 'error');
+                    console.error(`場景 ${sceneNum} 失敗:`, e);
+                    sceneResult.type = '錯誤: ' + e.message;
+                }
+
+                scenes.push(sceneResult);
+                renderGalleryItem(sceneResult, i);
+
+                if (i < screenplay.length - 1) await delay(1000);
+            }
+
+            // --- Step 3: Stitching Final Movie ---
+            btnGenVideo.innerHTML = `<i class="fa-solid fa-film"></i> 最終影片組裝中...`;
+            addProductionLog("開始影片組裝和全局音頻同步...", 'info');
 
             try {
-                const promptToUse = scene.image_prompt_en || scene.description;
+                const sceneDuration = 8000; // 8 seconds per scene
+                addProductionLog(`拼接: ${screenplay.length} 個場景，每個 ${sceneDuration}ms`, 'info');
 
-                let refImage = state.femaleImg;
-                if (scene.cameraMove.includes("男角") && state.maleImg) {
-                    refImage = state.maleImg;
-                } else if (scene.cameraMove.includes("Male") && state.maleImg) {
-                    refImage = state.maleImg;
-                }
-
-                // 1. Generate Static Reference Image
-                addProductionLog(`AI 圖像 [S${sceneNum}]: 正在生成基礎圖像...`, 'info');
-                const aiUrl = await generateAIImage(apiKey, promptToUse, refImage, (statusMsg) => {
-                    btnGenVideo.innerHTML = `<i class="fa-solid fa-hourglass-half"></i> 場景 ${sceneNum}: ${statusMsg}`;
-                    addProductionLog(`AI 圖像 [S${sceneNum}]: ${statusMsg}`, 'info');
-                }, aspectRatio, visualDetails);
-
-                if (aiUrl) {
-                    sceneResult.url = aiUrl;
-                    sceneResult.type = lockedImageModel || 'AI 生成器';
-                    addProductionLog(`AI 圖像 [S${sceneNum}]: ✅ 基礎圖像已由 ${sceneResult.type} 生成。`, 'success');
-
-                    // 2. Generate Veo3 Video Clip if enabled
-                    const veoEnabled = document.getElementById('enable-veo').checked;
-                    if (veoEnabled) {
-                        try {
-                            addProductionLog(`正在用 Veo 3.1 拍攝場景 ${sceneNum}...`, 'info');
-                            btnGenVideo.innerHTML = `<i class="fa-solid fa-film"></i> Veo3: 正在生成片段 ${i + 1}/${screenplay.length}... (請稍候)`;
-
-                            const targetDuration = 8; // Fixed 8 seconds per scene
-                            const veoResult = await generateVeoVideo(apiKey, aiUrl, promptToUse, targetDuration, (status) => {
-                                btnGenVideo.innerHTML = `<i class="fa-solid fa-film"></i> Veo3: ${status} (場景 ${i + 1})`;
-                                addProductionLog(`Veo3 [S${sceneNum}]: ${status}`, 'info');
-                            }, visualDetails);
-
-                            if (veoResult && veoResult.videoBase64) {
-                                sceneResult.veoVideo = veoResult.videoBase64;
-                                sceneResult.type = `Veo 3.1 (電影)`;
-                                addProductionLog(`Veo3 [S${sceneNum}]: ✅ 影片成功捕獲！`, 'success');
-                            }
-                        } catch (veoErr) {
-                            addProductionLog(`Veo3 [S${sceneNum}]: ❌ 失敗 - ${veoErr.message}`, 'error');
-                            console.warn(`場景 ${sceneNum} 的 Veo 失敗:`, veoErr.message);
-                        }
-                    }
+                let finalVideoUrl;
+                if (scenes.length === 1 && scenes[0].veoVideo) {
+                    addProductionLog("直接交付: 檢測到單個 Veo 場景。繞過畫布拼接器以獲得最大質量。", 'success');
+                    finalVideoUrl = scenes[0].veoVideo;
                 } else {
-                    throw new Error("AI 圖像生成失敗。");
+                    finalVideoUrl = await stitchVideos(scenes, sceneDuration);
                 }
-            } catch (e) {
-                addProductionLog(`場景 ${sceneNum} 製作錯誤: ${e.message}`, 'error');
-                console.error(`場景 ${sceneNum} 失敗:`, e);
-                sceneResult.type = '錯誤: ' + e.message;
+
+                videoSection.classList.remove('hidden');
+                videoSection.scrollIntoView({ behavior: 'smooth' });
+                finalVideo.src = finalVideoUrl;
+                finalVideo.load();
+                finalVideo.play();
+
+                let caption = document.getElementById('video-caption') || document.createElement('p');
+                caption.id = 'video-caption';
+                caption.className = 'scene-caption';
+                caption.style.textAlign = 'center';
+                caption.style.marginTop = '10px';
+                if (!document.getElementById('video-caption')) finalVideo.parentElement.appendChild(caption);
+
+                const realVeoCount = scenes.filter(s => !!s.veoVideo).length;
+                caption.innerHTML = `<strong>最終製作:</strong> ${realVeoCount}/${scenes.length} 個場景包含真實 Veo3 影片和純 AI 音頻。`;
+                addProductionLog(`製作完成！真實 Veo 片段總數: ${realVeoCount}`, 'success');
+
+                const dlLink = document.getElementById('download-link');
+                dlLink.href = finalVideoUrl;
+                dlLink.download = `cinema_production_${Date.now()}.mp4`;
+                dlLink.innerHTML = `<i class="fa-solid fa-download"></i> 下載完整電影 MP4`;
+
+                // Add Raw Batch Download Link
+                const rawVeos = scenes.filter(s => !!s.veoVideo);
+                if (rawVeos.length > 0) {
+                    const batchContainer = document.createElement('div');
+                    batchContainer.style.marginTop = '15px';
+                    batchContainer.style.textAlign = 'center';
+
+                    const btnAll = document.createElement('button');
+                    btnAll.className = 'glass-btn';
+                    btnAll.style.borderColor = '#4CAF50';
+                    btnAll.style.color = '#4CAF50';
+                    btnAll.innerHTML = `<i class="fa-solid fa-file-zipper"></i> 下載所有 ${rawVeos.length} 個原始 Veo 片段`;
+                    btnAll.onclick = () => {
+                        rawVeos.forEach((s, idx) => {
+                            setTimeout(() => {
+                                downloadImage(s.veoVideo, `raw_veo_scene_${idx + 1}.mp4`);
+                            }, idx * 500);
+                        });
+                    };
+                    batchContainer.appendChild(btnAll);
+                    dlLink.parentElement.appendChild(batchContainer);
+                }
+            } catch (stitchErr) {
+                addProductionLog(`組裝失敗: ${stitchErr.message}`, 'error');
+                console.error("拼接失敗:", stitchErr);
+                alert("組裝失敗，但您可以下載上面的單個場景。");
             }
 
-            scenes.push(sceneResult);
-            renderGalleryItem(sceneResult, i);
+            btnGenVideo.innerHTML = originalBtnText;
+            btnGenVideo.disabled = false;
 
-            if (i < screenplay.length - 1) await delay(1000);
-        }
-
-        // --- Step 3: Stitching Final Movie ---
-        btnGenVideo.innerHTML = `<i class="fa-solid fa-film"></i> 最終影片組裝中...`;
-        addProductionLog("開始影片組裝和全局音頻同步...", 'info');
-
-        try {
-            const sceneDuration = 8000; // 8 seconds per scene
-            addProductionLog(`拼接: ${screenplay.length} 個場景，每個 ${sceneDuration}ms`, 'info');
-
-            let finalVideoUrl;
-            if (scenes.length === 1 && scenes[0].veoVideo) {
-                addProductionLog("直接交付: 檢測到單個 Veo 場景。繞過畫布拼接器以獲得最大質量。", 'success');
-                finalVideoUrl = scenes[0].veoVideo;
-            } else {
-                finalVideoUrl = await stitchVideos(scenes, sceneDuration);
-            }
-
-            videoSection.classList.remove('hidden');
-            videoSection.scrollIntoView({ behavior: 'smooth' });
-            finalVideo.src = finalVideoUrl;
-            finalVideo.load();
-            finalVideo.play();
-
-            let caption = document.getElementById('video-caption') || document.createElement('p');
-            caption.id = 'video-caption';
-            caption.className = 'scene-caption';
-            caption.style.textAlign = 'center';
-            caption.style.marginTop = '10px';
-            if (!document.getElementById('video-caption')) finalVideo.parentElement.appendChild(caption);
-
-            const realVeoCount = scenes.filter(s => !!s.veoVideo).length;
-            caption.innerHTML = `<strong>最終製作:</strong> ${realVeoCount}/${scenes.length} 個場景包含真實 Veo3 影片和純 AI 音頻。`;
-            addProductionLog(`製作完成！真實 Veo 片段總數: ${realVeoCount}`, 'success');
-
-            const dlLink = document.getElementById('download-link');
-            dlLink.href = finalVideoUrl;
-            dlLink.download = `cinema_production_${Date.now()}.mp4`;
-            dlLink.innerHTML = `<i class="fa-solid fa-download"></i> 下載完整電影 MP4`;
-
-            // Add Raw Batch Download Link
-            const rawVeos = scenes.filter(s => !!s.veoVideo);
-            if (rawVeos.length > 0) {
-                const batchContainer = document.createElement('div');
-                batchContainer.style.marginTop = '15px';
-                batchContainer.style.textAlign = 'center';
-
-                const btnAll = document.createElement('button');
-                btnAll.className = 'glass-btn';
-                btnAll.style.borderColor = '#4CAF50';
-                btnAll.style.color = '#4CAF50';
-                btnAll.innerHTML = `<i class="fa-solid fa-file-zipper"></i> 下載所有 ${rawVeos.length} 個原始 Veo 片段`;
-                btnAll.onclick = () => {
-                    rawVeos.forEach((s, idx) => {
-                        setTimeout(() => {
-                            downloadImage(s.veoVideo, `raw_veo_scene_${idx + 1}.mp4`);
-                        }, idx * 500);
-                    });
-                };
-                batchContainer.appendChild(btnAll);
-                dlLink.parentElement.appendChild(batchContainer);
-            }
-        } catch (stitchErr) {
-            addProductionLog(`組裝失敗: ${stitchErr.message}`, 'error');
-            console.error("拼接失敗:", stitchErr);
-            alert("組裝失敗，但您可以下載上面的單個場景。");
-        }
-
-        btnGenVideo.innerHTML = originalBtnText;
-        btnGenVideo.disabled = false;
-
-    }, 1500);
-});
+        }, 1500);
+    });
 
 });
